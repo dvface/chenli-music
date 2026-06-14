@@ -335,67 +335,62 @@
 
         /* ========== 星尘歌词系统 ========== */
         .lyrics-stage {
-            position:absolute; top:5vh; bottom:15vh; left:0; right:0;
+            position:absolute; bottom:18vh; left:0; right:0;
             pointer-events:none; z-index:3;
             display:flex; flex-direction:column;
-            justify-content:center;
-            padding-left:max(3vw, 16px);
+            align-items:center; gap:2vh;
+            padding:0 8vw;
         }
         .lyrics-line {
-            position:absolute;
-            display:flex; flex-wrap:wrap; gap:0.12em;
-            text-align:left; justify-content:flex-start;
-            transition:opacity 0.8s ease;
-            /* top 由 JS 动态设置 */
+            display:flex; flex-wrap:wrap; justify-content:center; gap:0.1em;
+            transition:all 0.7s ease;
+            text-align:center; width:100%;
         }
-        .lyrics-char {
-            display:inline-block;
-            font-family:var(--font-stack);
-            font-size:20px; font-weight:300; letter-spacing:0.05em;
-            color:rgba(220,200,245,0.7);
-            text-shadow:0 0 6px rgba(180,140,220,0.3);
-            animation:lyricTwinkle 3s ease-in-out infinite;
-            transition:all 0.6s ease;
+        /* 当前行 — 亮白大字 */
+        .lyrics-line.current-line {
+            opacity:1; transform:translateY(0);
         }
-        .lyrics-char.current {
-            color:#f5e8ff;
+        .lyrics-line.current-line .lyrics-char {
+            font-size:24px; font-weight:350;
+            color:rgba(240,225,255,0.85);
+            text-shadow:0 0 10px rgba(200,160,240,0.5),0 0 25px rgba(150,100,200,0.3);
+        }
+        .lyrics-line.current-line .lyrics-char.lit {
+            color:#fff;
+            text-shadow:0 0 14px rgba(220,180,255,0.8),0 0 35px rgba(170,120,220,0.5);
             font-weight:400;
-            text-shadow:0 0 12px rgba(210,170,240,0.7),0 0 28px rgba(160,110,200,0.4);
-            animation:lyricGlow 2s ease-in-out infinite;
         }
-        .lyrics-char.past {
-            color:rgba(160,130,200,0.35);
-            text-shadow:0 0 4px rgba(120,90,170,0.15);
-            animation:none;
+        /* 下一行 — 暗紫小字预览 */
+        .lyrics-line.next-line {
+            opacity:0.45;
         }
-        .lyrics-char.upcoming {
-            color:rgba(180,160,210,0.15);
-            text-shadow:none;
-            animation:none;
+        .lyrics-line.next-line .lyrics-char {
+            font-size:17px; font-weight:300;
+            color:rgba(180,155,215,0.7);
+            text-shadow:0 0 4px rgba(140,110,180,0.2);
         }
-        @keyframes lyricTwinkle {
-            0%,100% { opacity:0.5; }
-            50% { opacity:0.9; }
+        /* 行切换动画 */
+        .lyrics-line.switch-out {
+            opacity:0; transform:translateY(-8px);
+            transition:all 0.5s ease-in;
         }
-        @keyframes lyricGlow {
-            0%,100% { opacity:0.8; filter:brightness(1); }
-            50% { opacity:1; filter:brightness(1.25); }
+
+        @media screen and (max-width:768px) {
+            .lyrics-stage { bottom:20vh; padding:0 6vw; }
+            .lyrics-line.current-line .lyrics-char { font-size:20px; }
+            .lyrics-line.next-line .lyrics-char { font-size:14px; }
         }
-        .lyrics-line.active-line { z-index:5; }
-        .lyrics-line.active-line .lyrics-char.current { font-size:1.05em; }
-        .lyrics-line.fading {
-            opacity:0; transform:translateY(-12px);
-            transition:all 1.2s ease-out;
+        @media screen and (max-width:400px) {
+            .lyrics-stage { bottom:22vh; padding:0 4vw; }
+            .lyrics-line.current-line .lyrics-char { font-size:18px; }
+            .lyrics-line.next-line .lyrics-char { font-size:13px; }
         }
 
         /* ========== 响应式 ========== */
         @media screen and (max-width:768px) {
             .header { padding:12px 16px 4px; }
             .header-title { font-size:16px; }
-            .lyrics-char { font-size:14px; }
-            .lyrics-char.current { font-size:15px; }
-            .lyrics-stage { padding-left:2vw; top:2vh; }
-            .lyrics-line { width:88% !important; }
+            /* 歌词响应式已在歌词区定义 */
             .central-star-svg { width:68px; height:68px; }
             .central-halo.outer { width:160px; height:160px; }
             .central-halo.inner { width:100px; height:100px; }
@@ -859,165 +854,140 @@
         });
 
         // ============================================================
-        // 星尘歌词系统 — LRC 解析 + 逐词浮现
+        // 星尘歌词系统 — 双行显示 + 逐词点亮
         // ============================================================
         const lyricsStage = document.getElementById('lyricsStage');
-        let lyricsData = [];          // [{time, text}] 当前歌曲的歌词
-        let lyricsLines = [];         // DOM 元素
-        let currentLyricIdx = -1;     // 当前行索引
-        let lyricsUpdateRAF = null;
+        const LYRICS_LEAD = 0.28;    // 时间前置量（秒），让歌词略早于歌声出现
+        let lyricsData = [];
+        let currentLineEl = null;     // 当前行 DOM
+        let nextLineEl = null;        // 下一行 DOM
+        let activeIdx = -1;
+        let lyricsRAF = null;
 
-        /** 解析 LRC 歌词文本，支持 [offset:] 时间偏移 */
-        function parseLRC(lrcText) {
+        function parseLRC(text) {
             const lines = [];
-            const timeRe = /\[(\d{2}):(\d{2})[\.:](\d{2,3})\]/g;
-            let offsetMs = 0;
-            for (const raw of lrcText.split('\n')) {
-                const trimmed = raw.trim();
-                if (!trimmed) continue;
-                // 提取 offset
-                const offMatch = trimmed.match(/^\[offset:\s*(-?\d+)\]/i);
-                if (offMatch) { offsetMs = parseInt(offMatch[1]) / 1000; continue; }
-                // 跳过其他元信息行
-                if (/^\[(ar|ti|al|by|total|hash|qq|sign):/.test(trimmed)) continue;
-                const times = [];
-                let match;
-                while ((match = timeRe.exec(trimmed)) !== null) {
-                    const mins = parseInt(match[1]), secs = parseInt(match[2]);
-                    let ms = parseInt(match[3]);
-                    if (match[3].length === 2) ms *= 10;
-                    times.push(mins * 60 + secs + ms / 1000);
+            const re = /\[(\d{2}):(\d{2})[\.:](\d{2,3})\]/g;
+            let offset = 0;
+            for (const raw of text.split('\n')) {
+                const t = raw.trim();
+                if (!t) continue;
+                const om = t.match(/^\[offset:\s*(-?\d+)\]/i);
+                if (om) { offset = parseInt(om[1]) / 1000; continue; }
+                if (/^\[(ar|ti|al|by|total|hash|qq|sign):/.test(t)) continue;
+                const times = []; let m;
+                while ((m = re.exec(t)) !== null) {
+                    const sec = parseInt(m[1])*60 + parseInt(m[2]) + parseInt(m[3])/(m[3].length===2?100:1000);
+                    times.push(sec + offset - LYRICS_LEAD);
                 }
-                const text = trimmed.replace(timeRe, '').trim();
-                if (text && times.length) {
-                    times.forEach(t => lines.push({ time: t + offsetMs, text }));
-                }
+                const txt = t.replace(re, '').trim();
+                if (txt && times.length) times.forEach(s => lines.push({ time:s, text:txt }));
             }
-            lines.sort((a, b) => a.time - b.time);
-            return lines.filter((l, i) => i === 0 || l.text !== lines[i-1].text || l.time - lines[i-1].time > 0.4);
+            lines.sort((a,b) => a.time - b.time);
+            return lines.filter((l,i) => i===0 || l.text !== lines[i-1].text || l.time - lines[i-1].time > 0.35);
         }
 
-        /** 加载歌词文件 */
+        /** 构建一行 DOM */
+        function buildLineEl(text, className) {
+            const el = document.createElement('div');
+            el.className = 'lyrics-line ' + className;
+            [...text].forEach(ch => {
+                const sp = document.createElement('span');
+                sp.className = 'lyrics-char'; sp.textContent = ch;
+                el.appendChild(sp);
+            });
+            return el;
+        }
+
         async function loadLyrics() {
             const song = SONG_DATA[currentIndex];
             if (!song) return;
-            const lrcPath = AUDIO_DIR + song.file.replace('.mp3', '.lrc');
             try {
-                const resp = await fetch(lrcPath);
+                const resp = await fetch(AUDIO_DIR + song.file.replace('.mp3', '.lrc'));
                 if (!resp.ok) throw new Error('no lrc');
-                const text = await resp.text();
-                lyricsData = parseLRC(text);
-            } catch(e) {
-                lyricsData = [];
-            }
-            if (lyricsData.length) renderLyricsWindow(0);
-            else {
-                lyricsStage.innerHTML = '';
-                const hint = document.createElement('div');
-                hint.className = 'lyrics-line'; hint.style.cssText = 'position:relative;top:38vh;';
-                hint.innerHTML = `<span class="lyrics-char current">♪</span>`;
-                lyricsStage.appendChild(hint);
-                lyricsLines = [hint];
+                lyricsData = parseLRC(await resp.text());
+            } catch(e) { lyricsData = []; }
+
+            lyricsStage.innerHTML = '';
+            currentLineEl = null; nextLineEl = null; activeIdx = -1;
+
+            if (lyricsData.length) {
+                currentLineEl = buildLineEl(lyricsData[0].text, 'current-line');
+                lyricsStage.appendChild(currentLineEl);
+                if (lyricsData.length > 1) {
+                    nextLineEl = buildLineEl(lyricsData[1].text, 'next-line');
+                    lyricsStage.appendChild(nextLineEl);
+                }
             }
         }
 
-        /** 更新歌词显示（每帧调用） */
         function updateLyrics() {
             if (!lyricsData.length || currentIndex < 0) {
-                lyricsUpdateRAF = requestAnimationFrame(updateLyrics);
-                return;
+                lyricsRAF = requestAnimationFrame(updateLyrics); return;
             }
-            const t = audioEl.currentTime;
-            // 找到当前行
-            let activeIdx = -1;
-            for (let i = lyricsData.length - 1; i >= 0; i--) {
-                if (t >= lyricsData[i].time) { activeIdx = i; break; }
+            const t = audioEl.currentTime + LYRICS_LEAD;
+            let newIdx = -1;
+            for (let i = lyricsData.length-1; i >= 0; i--) {
+                if (t >= lyricsData[i].time) { newIdx = i; break; }
             }
-            if (activeIdx !== currentLyricIdx) {
-                currentLyricIdx = activeIdx;
-                if (activeIdx >= 0) renderLyricsWindow(activeIdx);
+            if (newIdx !== activeIdx) {
+                activeIdx = newIdx;
+                switchLine();
             }
-            // 逐字点亮当前行 —— 使用真实行间间隔
-            lyricsLines.forEach((line, i) => {
-                const winStart = Math.max(0, currentLyricIdx - 6);
-                const dataIdx = winStart + i;
-                if (dataIdx >= lyricsData.length) return;
-                const chars = line.querySelectorAll('.lyrics-char');
-                const item = lyricsData[dataIdx];
-                // 计算该行的实际持续时间
-                const nextItem = (dataIdx + 1 < lyricsData.length) ? lyricsData[dataIdx + 1] : null;
-                const lineDuration = nextItem ? Math.max(1.5, nextItem.time - item.time) : 5;
-                chars.forEach((span, ci) => {
-                    span.classList.remove('current', 'past', 'upcoming');
-                    if (dataIdx < currentLyricIdx) {
-                        span.classList.add('past');
-                    } else if (dataIdx === currentLyricIdx) {
-                        // 按真实行时长均匀分配每个字的出现时刻
-                        const charTime = item.time + (ci / Math.max(1, chars.length)) * lineDuration;
-                        if (t >= charTime) span.classList.add('current');
-                        else span.classList.add('upcoming');
-                    } else {
-                        span.classList.add('upcoming');
-                    }
+            // 逐字点亮当前行
+            if (currentLineEl && activeIdx >= 0) {
+                const item = lyricsData[activeIdx];
+                const chars = currentLineEl.querySelectorAll('.lyrics-char');
+                const nextItem = (activeIdx+1 < lyricsData.length) ? lyricsData[activeIdx+1] : null;
+                const duration = nextItem ? Math.max(1.2, nextItem.time - item.time) : 5;
+                chars.forEach((sp, ci) => {
+                    const charTime = item.time + (ci / chars.length) * duration;
+                    sp.classList.toggle('lit', t >= charTime);
                 });
-                line.classList.toggle('active-line', dataIdx === currentLyricIdx);
-                if (dataIdx < currentLyricIdx - 1) line.classList.add('fading');
-                else line.classList.remove('fading');
-            });
-            lyricsUpdateRAF = requestAnimationFrame(updateLyrics);
+            }
+            lyricsRAF = requestAnimationFrame(updateLyrics);
         }
 
-        /** 滚动歌词窗口，显示当前行及上下文 */
-        function renderLyricsWindow(activeIdx) {
-            const ctxSize = 5;
-            const start = Math.max(0, activeIdx - ctxSize);
-            const end = Math.min(lyricsData.length, activeIdx + ctxSize + 2);
-            const window_ = lyricsData.slice(start, end);
-
-            lyricsStage.innerHTML = '';
-            lyricsLines = [];
-            window_.forEach((item, i) => {
-                const line = document.createElement('div');
-                line.className = 'lyrics-line';
-                // 垂直分布：当前行在屏幕38vh位置，上下间隔7vh
-                const baseTop = 38;
-                const gap = 7;
-                const activeInWindow = activeIdx - start;
-                line.style.top = (baseTop + (i - activeInWindow) * gap) + 'vh';
-                line.style.position = 'absolute';
-                line.style.left = '0';
-                line.style.width = '85%';
-                const chars = [...item.text];
-                chars.forEach(ch => {
-                    const span = document.createElement('span');
-                    span.className = 'lyrics-char upcoming';
-                    span.textContent = ch;
-                    span.style.animationDelay = (Math.random() * 1.5).toFixed(1) + 's';
-                    line.appendChild(span);
-                });
-                lyricsStage.appendChild(line);
-                lyricsLines.push(line);
-            });
+        /** 切换到新行 */
+        function switchLine() {
+            if (!currentLineEl || activeIdx < 0) return;
+            // 旧当前行淡出移除
+            if (currentLineEl) {
+                currentLineEl.classList.add('switch-out');
+                const old = currentLineEl;
+                setTimeout(() => old.remove(), 500);
+            }
+            // 下一行提升为当前行
+            if (nextLineEl) {
+                nextLineEl.classList.remove('next-line');
+                nextLineEl.classList.add('current-line');
+                // 把 lit 清掉重新走时间
+                nextLineEl.querySelectorAll('.lyrics-char').forEach(s => s.classList.remove('lit'));
+            }
+            currentLineEl = nextLineEl;
+            // 创建新的下一行
+            const nextIdx = activeIdx + 1;
+            if (nextIdx < lyricsData.length) {
+                nextLineEl = buildLineEl(lyricsData[nextIdx].text, 'next-line');
+                lyricsStage.appendChild(nextLineEl);
+            } else {
+                nextLineEl = null;
+            }
         }
 
-        /** 歌词系统入口 — 切歌时调用 */
         async function startLyrics() {
-            cancelAnimationFrame(lyricsUpdateRAF);
-            currentLyricIdx = -1;
-            lyricsData = [];
+            cancelAnimationFrame(lyricsRAF);
+            lyricsData = []; activeIdx = -1;
             lyricsStage.innerHTML = '';
-            lyricsLines = [];
+            currentLineEl = null; nextLineEl = null;
             await loadLyrics();
             updateLyrics();
         }
 
-        /** 停止歌词 */
         function stopLyrics() {
-            cancelAnimationFrame(lyricsUpdateRAF);
-            currentLyricIdx = -1;
-            lyricsData = [];
+            cancelAnimationFrame(lyricsRAF);
+            lyricsData = []; activeIdx = -1;
             lyricsStage.innerHTML = '';
-            lyricsLines = [];
+            currentLineEl = null; nextLineEl = null;
         }
 
         // ============================================================
