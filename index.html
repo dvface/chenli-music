@@ -335,11 +335,11 @@
 
         /* ========== 星尘歌词系统 ========== */
         .lyrics-stage {
-            position:absolute; bottom:18vh; left:0; right:0;
+            position:absolute; bottom:6vh; left:0; right:0;
             pointer-events:none; z-index:3;
             display:flex; flex-direction:column;
-            align-items:center; gap:2vh;
-            padding:0 8vw;
+            align-items:center; gap:1.8vh;
+            padding:0 6vw;
         }
         .lyrics-line {
             display:flex; flex-wrap:wrap; justify-content:center; gap:0.1em;
@@ -376,12 +376,12 @@
         }
 
         @media screen and (max-width:768px) {
-            .lyrics-stage { bottom:20vh; padding:0 6vw; }
+            .lyrics-stage { bottom:10vh; padding:0 6vw; }
             .lyrics-line.current-line .lyrics-char { font-size:20px; }
             .lyrics-line.next-line .lyrics-char { font-size:14px; }
         }
         @media screen and (max-width:400px) {
-            .lyrics-stage { bottom:22vh; padding:0 4vw; }
+            .lyrics-stage { bottom:12vh; padding:0 4vw; }
             .lyrics-line.current-line .lyrics-char { font-size:18px; }
             .lyrics-line.next-line .lyrics-char { font-size:13px; }
         }
@@ -505,7 +505,7 @@
 
     <!-- ==================== 页脚 ==================== -->
     <div class="footer-dedication">
-        <span>✨ 送给小周 · 致敬独立音乐人陈粒</span>
+        <span>✨ 送给小周</span>
     </div>
 
     <!-- ==================== JavaScript ==================== -->
@@ -857,10 +857,10 @@
         // 星尘歌词系统 — 双行显示 + 逐词点亮
         // ============================================================
         const lyricsStage = document.getElementById('lyricsStage');
-        const LYRICS_LEAD = 0.28;    // 时间前置量（秒），让歌词略早于歌声出现
+        const LYRICS_LEAD = 0.55;    // 时间前置量（秒），歌词提前于歌声
         let lyricsData = [];
-        let currentLineEl = null;     // 当前行 DOM
-        let nextLineEl = null;        // 下一行 DOM
+        let currentLineEl = null;
+        let nextLineEl = null;
         let activeIdx = -1;
         let lyricsRAF = null;
 
@@ -877,7 +877,7 @@
                 const times = []; let m;
                 while ((m = re.exec(t)) !== null) {
                     const sec = parseInt(m[1])*60 + parseInt(m[2]) + parseInt(m[3])/(m[3].length===2?100:1000);
-                    times.push(sec + offset - LYRICS_LEAD);
+                    times.push(sec + offset);
                 }
                 const txt = t.replace(re, '').trim();
                 if (txt && times.length) times.forEach(s => lines.push({ time:s, text:txt }));
@@ -924,21 +924,23 @@
             if (!lyricsData.length || currentIndex < 0) {
                 lyricsRAF = requestAnimationFrame(updateLyrics); return;
             }
+            // 时间前置：加上 LYRICS_LEAD 让歌词提前出现
             const t = audioEl.currentTime + LYRICS_LEAD;
             let newIdx = -1;
             for (let i = lyricsData.length-1; i >= 0; i--) {
                 if (t >= lyricsData[i].time) { newIdx = i; break; }
             }
-            if (newIdx !== activeIdx) {
+            if (newIdx !== activeIdx && newIdx >= 0) {
+                // 跳过初始 -1→0（首行已在 loadLyrics 中渲染）
+                if (activeIdx >= 0) switchLine(newIdx);
                 activeIdx = newIdx;
-                switchLine();
             }
             // 逐字点亮当前行
             if (currentLineEl && activeIdx >= 0) {
                 const item = lyricsData[activeIdx];
                 const chars = currentLineEl.querySelectorAll('.lyrics-char');
                 const nextItem = (activeIdx+1 < lyricsData.length) ? lyricsData[activeIdx+1] : null;
-                const duration = nextItem ? Math.max(1.2, nextItem.time - item.time) : 5;
+                const duration = nextItem ? Math.max(1.0, nextItem.time - item.time) : 4;
                 chars.forEach((sp, ci) => {
                     const charTime = item.time + (ci / chars.length) * duration;
                     sp.classList.toggle('lit', t >= charTime);
@@ -948,26 +950,28 @@
         }
 
         /** 切换到新行 */
-        function switchLine() {
-            if (!currentLineEl || activeIdx < 0) return;
+        function switchLine(newIdx) {
+            if (!currentLineEl) return;
             // 旧当前行淡出移除
-            if (currentLineEl) {
-                currentLineEl.classList.add('switch-out');
-                const old = currentLineEl;
-                setTimeout(() => old.remove(), 500);
-            }
+            currentLineEl.classList.add('switch-out');
+            const old = currentLineEl;
+            setTimeout(() => old.remove(), 500);
             // 下一行提升为当前行
             if (nextLineEl) {
                 nextLineEl.classList.remove('next-line');
                 nextLineEl.classList.add('current-line');
-                // 把 lit 清掉重新走时间
                 nextLineEl.querySelectorAll('.lyrics-char').forEach(s => s.classList.remove('lit'));
             }
             currentLineEl = nextLineEl;
+            // 兜底：重建当前行
+            if (!currentLineEl) {
+                currentLineEl = buildLineEl(lyricsData[newIdx].text, 'current-line');
+                lyricsStage.appendChild(currentLineEl);
+            }
             // 创建新的下一行
-            const nextIdx = activeIdx + 1;
-            if (nextIdx < lyricsData.length) {
-                nextLineEl = buildLineEl(lyricsData[nextIdx].text, 'next-line');
+            const nxt = newIdx + 1;
+            if (nxt < lyricsData.length) {
+                nextLineEl = buildLineEl(lyricsData[nxt].text, 'next-line');
                 lyricsStage.appendChild(nextLineEl);
             } else {
                 nextLineEl = null;
@@ -1181,7 +1185,7 @@
             console.log('%c   📁 音频文件路径: audio/ 文件夹 (16 首)', 'color:#a89cc8;');
             console.log('%c   🖱 点击中央星星 → 展开 16 首歌曲星云', 'color:#a89cc8;');
             console.log('%c   ⌨ 空格 → 播放/暂停 | ←→ 切歌 | ↑↓ 音量 | M 静音', 'color:#a89cc8;');
-            console.log('%c   ✨ 送给小周 · 致敬独立音乐人陈粒', 'color:#d8b0f0;');
+            console.log('%c   ✨ 送给小周', 'color:#d8b0f0;');
         }
 
         init();
