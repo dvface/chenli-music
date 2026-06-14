@@ -335,10 +335,10 @@
 
         /* ========== 星尘歌词系统 ========== */
         .lyrics-stage {
-            position:absolute; bottom:6vh; left:0; right:0;
+            position:absolute; bottom:1vh; left:0; right:0;
             pointer-events:none; z-index:3;
             display:flex; flex-direction:column;
-            align-items:center; gap:1.8vh;
+            align-items:center; gap:1.5vh;
             padding:0 6vw;
         }
         .lyrics-line {
@@ -376,12 +376,12 @@
         }
 
         @media screen and (max-width:768px) {
-            .lyrics-stage { bottom:10vh; padding:0 6vw; }
+            .lyrics-stage { bottom:3vh; padding:0 6vw; }
             .lyrics-line.current-line .lyrics-char { font-size:20px; }
             .lyrics-line.next-line .lyrics-char { font-size:14px; }
         }
         @media screen and (max-width:400px) {
-            .lyrics-stage { bottom:12vh; padding:0 4vw; }
+            .lyrics-stage { bottom:4vh; padding:0 4vw; }
             .lyrics-line.current-line .lyrics-char { font-size:18px; }
             .lyrics-line.next-line .lyrics-char { font-size:13px; }
         }
