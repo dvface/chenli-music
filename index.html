@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>陈粒 - 星云音乐站</title>
+    <style>
+        /* ============================================================
+           CSS 变量 & 基础重置
+           ============================================================ */
+        :root {
+            --bg-primary: #06060f;
+            --bg-card: rgba(20, 16, 40, 0.65);
+            --bg-card-hover: rgba(30, 24, 55, 0.75);
+            --text-primary: #f2edff;
+            --text-secondary: #a89cc8;
+            --text-tertiary: #7468a0;
+            --accent: #c084d8;
+            --radius-sm: 10px;
+            --radius-md: 16px;
+            --radius-lg: 22px;
+            --font-stack: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            --font-mono: 'SF Mono', 'Menlo', 'Consolas', monospace;
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+            --spring: cubic-bezier(0.22, 0.98, 0.36, 1);
+        }
+        *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+        html, body {
+            width:100%; height:100%; overflow:hidden;
+            font-family:var(--font-stack);
+            background:var(--bg-primary);
+            color:var(--text-primary);
+            -webkit-tap-highlight-color:transparent;
+            -webkit-font-smoothing:antialiased;
+            user-select:none; -webkit-user-select:none;
+        }
+
+        /* ========== Canvas 星云背景 ========== */
+        #nebulaCanvas { position:fixed; inset:0; z-index:0; pointer-events:none; }
+
+        /* ========== 主容器 ========== */
+        .app-container {
+            position:fixed; inset:0; z-index:1;
+            display:flex; flex-direction:column; overflow:hidden;
+        }
+
+        /* ---------- 顶部标题栏 ---------- */
+        .header {
+            flex-shrink:0; padding:16px 24px 8px;
+            display:flex; align-items:center; justify-content:space-between; z-index:10;
+        }
+        .header-title {
+            font-size:18px; font-weight:600; letter-spacing:0.5px;
+            background:linear-gradient(135deg, #e8d5ff, #b8c8ff);
+            -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+        }
+        .header-btn {
+            width:36px; height:36px; border-radius:50%;
+            border:none; background:var(--bg-card);
+            color:var(--text-secondary); font-size:18px;
+            cursor:pointer; display:flex; align-items:center; justify-content:center;
+            backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+            transition:all 0.25s var(--spring);
+        }
+        .header-btn:hover { background:var(--bg-card-hover); color:var(--text-primary); }
+        .header-btn:active { transform:scale(0.92); }
+
+        /* ---------- 星星展示区 ---------- */
+        .star-stage {
+            flex:1; position:relative;
+            display:flex; align-items:center; justify-content:center; min-height:0;
+        }
+        .star-system { position:relative; width:0; height:0; }
+
+        /* ========== 中央大星星 ========== */
+        .central-star-btn {
+            position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+            cursor:pointer; z-index:10; background:none; border:none;
+            -webkit-tap-highlight-color:transparent;
+            transition:transform 0.4s var(--spring);
+        }
+        .central-star-btn:active { transform:translate(-50%,-50%) scale(0.9); }
+
+        .central-star-rotate {
+            display:block;
+            animation:centralRotate 28s linear infinite;
+        }
+        @keyframes centralRotate { to { transform:rotate(360deg); } }
+
+        .central-star-svg {
+            display:block; width:90px; height:90px;
+            filter:drop-shadow(0 0 18px rgba(210,170,245,0.55)) drop-shadow(0 0 45px rgba(150,90,210,0.35));
+            animation:centralBreathe 3.2s ease-in-out infinite;
+        }
+        @keyframes centralBreathe {
+            0%,100% { transform:scale(1); }
+            50% { transform:scale(1.06); }
+        }
+
+        .central-halo {
+            position:absolute; top:50%; left:50%; border-radius:50%;
+            pointer-events:none; transform:translate(-50%,-50%);
+        }
+        .central-halo.outer {
+            width:210px; height:210px;
+            background:radial-gradient(circle, rgba(180,120,220,0.18) 0%, rgba(100,50,170,0.06) 45%, transparent 70%);
+            animation:haloPulse 4s ease-in-out infinite;
+        }
+        .central-halo.inner {
+            width:130px; height:130px;
+            background:radial-gradient(circle, rgba(230,200,255,0.28) 0%, rgba(180,140,220,0.1) 35%, transparent 65%);
+            animation:haloPulse 2.8s ease-in-out 0.5s infinite;
+        }
+        @keyframes haloPulse {
+            0%,100% { opacity:0.5; transform:translate(-50%,-50%) scale(1); }
+            50% { opacity:1; transform:translate(-50%,-50%) scale(1.12); }
+        }
+
+        .central-hint {
+            position:absolute; top:calc(50% + 64px); left:50%;
+            transform:translateX(-50%); font-size:12px; letter-spacing:2px;
+            color:var(--text-tertiary); white-space:nowrap; pointer-events:none;
+            animation:hintPulse 3.5s ease-in-out infinite;
+        }
+        @keyframes hintPulse {
+            0%,100% { opacity:0.3; }
+            50% { opacity:0.85; }
+        }
+
+        /* ========== 小星星（通用） ========== */
+        .small-star-el {
+            position:absolute; top:50%; left:50%;
+            width:38px; height:38px;
+            transform:translate(-50%,-50%) translate(var(--sx),var(--sy)) scale(var(--ss,0));
+            opacity:var(--so,0);
+            cursor:pointer; z-index:5;
+            transition:transform 0.65s var(--spring), opacity 0.45s ease;
+            transition-delay:var(--sd,0s);
+            background:none; border:none;
+            -webkit-tap-highlight-color:transparent;
+        }
+        .small-star-el.expanded { --ss:1; --so:1; }
+
+        .small-star-svg {
+            display:block; width:100%; height:100%;
+            filter:drop-shadow(0 0 7px var(--sc)) drop-shadow(0 0 16px var(--sc));
+            transition:filter 0.35s ease, transform 0.35s var(--spring);
+        }
+        .small-star-el:hover .small-star-svg {
+            transform:scale(1.35);
+            filter:drop-shadow(0 0 14px var(--sc)) drop-shadow(0 0 30px var(--sc));
+        }
+        .small-star-el.playing .small-star-svg {
+            animation:starBounce 0.55s ease-in-out infinite;
+            filter:drop-shadow(0 0 18px #ffd25f) drop-shadow(0 0 38px #ff8c40);
+        }
+        @keyframes starBounce {
+            0%,100% { transform:scale(1); }
+            45% { transform:scale(1.28); }
+        }
+
+        .star-tooltip {
+            position:absolute; top:-34px; left:50%;
+            transform:translateX(-50%) translateY(5px);
+            background:rgba(10,8,28,0.92); color:#e4d8ff;
+            font-size:11px; font-weight:500; padding:5px 12px; border-radius:14px;
+            white-space:nowrap; pointer-events:none; letter-spacing:0.8px;
+            border:1px solid rgba(160,130,210,0.25);
+            opacity:0; transition:all 0.25s ease;
+        }
+        .small-star-el:hover .star-tooltip { opacity:1; transform:translateX(-50%) translateY(0); }
+
+        /* ========== 底部播放器卡片 ========== */
+        .player-sheet {
+            flex-shrink:0;
+            margin:0 12px calc(12px + var(--safe-bottom));
+            background:var(--bg-card);
+            backdrop-filter:blur(28px); -webkit-backdrop-filter:blur(28px);
+            border:1px solid rgba(140,110,200,0.2);
+            border-radius:var(--radius-lg);
+            padding:12px 16px; z-index:20;
+            display:flex; flex-direction:column; gap:8px;
+            opacity:0; transform:translateY(16px); pointer-events:none;
+            transition:opacity 0.45s ease, transform 0.45s var(--spring);
+            box-shadow:0 8px 40px rgba(0,0,0,0.45), 0 0 40px rgba(100,50,170,0.12);
+        }
+        .player-sheet.visible { opacity:1; transform:translateY(0); pointer-events:all; }
+
+        .player-progress-row { display:flex; align-items:center; gap:10px; }
+        .player-time-label {
+            font-family:var(--font-mono); font-size:10px;
+            color:var(--text-tertiary); min-width:32px; text-align:center;
+        }
+        .player-progress-track {
+            flex:1; height:3px; border-radius:2px;
+            background:rgba(120,100,170,0.25); cursor:pointer; position:relative;
+        }
+        .player-progress-fill {
+            height:100%; border-radius:2px;
+            background:linear-gradient(90deg, #a078d8, #d890c8);
+            width:0%; position:relative; transition:width 0.15s linear;
+        }
+        .player-progress-thumb {
+            position:absolute; right:-6px; top:50%; transform:translateY(-50%);
+            width:12px; height:12px; border-radius:50%;
+            background:#e0c8f8; box-shadow:0 0 10px rgba(200,150,230,0.5);
+            opacity:0; transition:opacity 0.2s ease;
+        }
+        .player-progress-track:hover .player-progress-thumb { opacity:1; }
+
+        .player-controls-row { display:flex; align-items:center; gap:12px; }
+        .player-info-block { flex:1; min-width:0; }
+        .player-song-title {
+            font-size:14px; font-weight:600; letter-spacing:0.3px;
+            color:var(--text-primary);
+            white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+        }
+        .player-song-artist { font-size:11px; color:var(--text-secondary); }
+
+        .ctrl-btn {
+            width:34px; height:34px; border-radius:50%;
+            border:none; background:transparent;
+            color:var(--text-secondary); font-size:16px;
+            cursor:pointer; display:flex; align-items:center; justify-content:center;
+            transition:all 0.2s ease;
+        }
+        .ctrl-btn:hover { color:var(--text-primary); }
+        .ctrl-btn:active { transform:scale(0.88); }
+
+        .ctrl-btn.play-pause {
+            width:42px; height:42px;
+            background:rgba(180,130,220,0.2);
+            border:1.5px solid rgba(180,140,220,0.35);
+            font-size:20px; color:#e8d8ff;
+            transition:all 0.3s var(--spring);
+        }
+        .ctrl-btn.play-pause:hover {
+            background:rgba(190,140,230,0.35);
+            box-shadow:0 0 20px rgba(170,120,210,0.35);
+        }
+        .ctrl-btn.play-pause:active { transform:scale(0.9); }
+
+        /* ========== 歌曲列表 Sheet ========== */
+        .tracklist-overlay {
+            position:fixed; inset:0; z-index:30;
+            background:rgba(0,0,0,0.5);
+            opacity:0; pointer-events:none;
+            transition:opacity 0.35s ease;
+        }
+        .tracklist-overlay.open { opacity:1; pointer-events:all; }
+
+        .tracklist-sheet {
+            position:fixed; bottom:0; left:0; right:0; z-index:31;
+            max-height:62vh;
+            background:rgba(14,10,30,0.96);
+            backdrop-filter:blur(30px); -webkit-backdrop-filter:blur(30px);
+            border-radius:var(--radius-lg) var(--radius-lg) 0 0;
+            padding:8px 0 calc(24px + var(--safe-bottom));
+            transform:translateY(100%);
+            transition:transform 0.45s var(--spring);
+            display:flex; flex-direction:column;
+            box-shadow:0 -8px 40px rgba(0,0,0,0.5);
+        }
+        .tracklist-sheet.open { transform:translateY(0); }
+
+        .tracklist-handle {
+            width:36px; height:4px; border-radius:2px;
+            background:rgba(160,140,200,0.35); margin:4px auto 12px; flex-shrink:0;
+        }
+        .tracklist-header {
+            padding:0 20px 10px; flex-shrink:0;
+            font-size:15px; font-weight:600; letter-spacing:0.5px;
+            color:var(--text-primary);
+        }
+        .tracklist-scroll {
+            flex:1; overflow-y:auto; overscroll-behavior:contain; padding:0 8px;
+        }
+        .tracklist-item {
+            display:flex; align-items:center; gap:10px;
+            padding:9px 12px; border-radius:var(--radius-sm);
+            cursor:pointer; transition:all 0.2s ease;
+            border:none; background:none; width:100%;
+            text-align:left; font-family:var(--font-stack);
+            color:var(--text-primary);
+        }
+        .tracklist-item:hover { background:var(--bg-card-hover); }
+        .tracklist-item:active { transform:scale(0.985); }
+        .tracklist-num {
+            width:24px; text-align:center; flex-shrink:0;
+            font-size:11px; font-weight:500;
+            color:var(--text-tertiary);
+            font-variant-numeric:tabular-nums;
+        }
+        .tracklist-item.active .tracklist-num { color:var(--accent); font-weight:600; }
+        .tracklist-info { flex:1; min-width:0; }
+        .tracklist-name {
+            font-size:13px; font-weight:500; letter-spacing:0.3px;
+            white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+        }
+        .tracklist-item.active .tracklist-name { color:#e8d0ff; }
+        .tracklist-artist { font-size:10px; color:var(--text-tertiary); }
+        .tracklist-dot {
+            width:16px; height:16px; flex-shrink:0; text-align:center; font-size:12px;
+        }
+        .tracklist-item.active .tracklist-dot { color:var(--accent); animation:starBounce 0.55s ease-in-out infinite; }
+
+        /* ========== Toast 提示 ========== */
+        .toast {
+            position:fixed; top:20px; left:50%; transform:translateX(-50%); z-index:50;
+            padding:8px 18px; border-radius:20px;
+            font-size:12px; letter-spacing:0.5px;
+            opacity:0; pointer-events:none;
+            transition:opacity 0.3s ease;
+        }
+        .toast.error { background:rgba(200,60,60,0.9); color:#fff; }
+        .toast.info { background:rgba(60,60,200,0.9); color:#fff; }
+        .toast.show { opacity:1; pointer-events:all; }
+
+        /* ========== 页脚 ========== */
+        .footer-dedication {
+            position:fixed; bottom:8px; left:0; right:0;
+            text-align:center; z-index:2; pointer-events:none;
+            padding-bottom:var(--safe-bottom);
+        }
+        .footer-dedication span {
+            font-size:11px; font-weight:300; letter-spacing:1.5px;
+            color:rgba(180,150,210,0.55);
+            text-shadow:0 0 8px rgba(160,120,200,0.3);
+            animation:footerGlow 5s ease-in-out infinite;
+        }
+        @keyframes footerGlow {
+            0%,100% { text-shadow:0 0 8px rgba(160,120,200,0.3); }
+            50% { text-shadow:0 0 16px rgba(160,120,200,0.55),0 0 30px rgba(120,80,180,0.2); }
+        }
+
+        /* ========== 响应式 ========== */
+        @media screen and (max-width:768px) {
+            .header { padding:12px 16px 4px; }
+            .header-title { font-size:16px; }
+            .central-star-svg { width:68px; height:68px; }
+            .central-halo.outer { width:160px; height:160px; }
+            .central-halo.inner { width:100px; height:100px; }
+            .central-hint { font-size:10px; top:calc(50% + 50px); }
+            .small-star-el { width:28px; height:28px; }
+            .star-tooltip { font-size:9px; top:-26px; padding:3px 8px; }
+            .player-sheet { margin:0 8px calc(8px + var(--safe-bottom)); padding:10px 12px; gap:6px; }
+            .player-song-title { font-size:13px; }
+            .ctrl-btn.play-pause { width:36px; height:36px; font-size:18px; }
+            .ctrl-btn { width:28px; height:28px; font-size:14px; }
+            .player-controls-row { gap:8px; }
+            .tracklist-name { font-size:12px; }
+            .tracklist-sheet { max-height:55vh; }
+        }
+        @media screen and (max-width:400px) {
+            .central-star-svg { width:56px; height:56px; }
+            .central-halo.outer { width:130px; height:130px; }
+            .central-halo.inner { width:82px; height:82px; }
+            .small-star-el { width:23px; height:23px; }
+            .player-sheet { padding:8px 10px; margin:0 4px calc(4px + var(--safe-bottom)); border-radius:14px; }
+            .player-song-title { font-size:12px; }
+            .tracklist-name { font-size:11px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ==================== 星云 Canvas 背景 ==================== -->
+    <canvas id="nebulaCanvas"></canvas>
+
+    <!-- ==================== 主容器 ==================== -->
+    <div class="app-container">
+        <!-- 标题栏 -->
+        <header class="header">
+            <span class="header-title">✦ 陈粒 · 星云音乐站</span>
+            <button class="header-btn" id="tracklistToggle" aria-label="歌曲列表">☰</button>
+        </header>
+
+        <!-- 星星展示区 -->
+        <div class="star-stage">
+            <div class="star-system" id="starSystem">
+                <!-- 中央大星星 -->
+                <button class="central-star-btn" id="centralStarBtn" aria-label="点击展开星云">
+                    <div class="central-halo outer"></div>
+                    <div class="central-halo inner"></div>
+                    <span class="central-star-rotate">
+                    <svg class="central-star-svg" viewBox="0 0 100 100">
+                        <defs>
+                            <radialGradient id="cgMain" cx="50%" cy="45%" r="52%">
+                                <stop offset="0%" stop-color="#fffdf7"/>
+                                <stop offset="28%" stop-color="#ffe4b8"/>
+                                <stop offset="58%" stop-color="#f0c060"/>
+                                <stop offset="100%" stop-color="#c08038"/>
+                            </radialGradient>
+                            <radialGradient id="cgGlow" cx="50%" cy="50%" r="50%">
+                                <stop offset="0%" stop-color="#ffffff" stop-opacity="0.85"/>
+                                <stop offset="45%" stop-color="#e0c0ff" stop-opacity="0.35"/>
+                                <stop offset="100%" stop-color="#8040c0" stop-opacity="0"/>
+                            </radialGradient>
+                        </defs>
+                        <circle cx="50" cy="50" r="49" fill="url(#cgGlow)"/>
+                        <polygon points="50,3 60,34 94,34 67,55 78,87 50,68 22,87 33,55 6,34 40,34"
+                                 fill="url(#cgMain)"/>
+                        <polygon points="50,17 54,40 78,40 58,56 64,80 50,64 36,80 42,56 22,40 46,40"
+                                 fill="rgba(255,255,255,0.3)"/>
+                        <circle cx="50" cy="50" r="7" fill="rgba(255,255,255,0.75)"/>
+                    </svg>
+                    </span>
+                    <div class="central-hint" id="centralHint">✦ 点击展开星云 ✦</div>
+                </button>
+                <!-- 小星星由 JS 动态插入 -->
+            </div>
+        </div>
+
+        <!-- 播放器卡片 -->
+        <div class="player-sheet" id="playerSheet">
+            <div class="player-progress-row">
+                <span class="player-time-label" id="timeCurrent">00:00</span>
+                <div class="player-progress-track" id="progressTrack">
+                    <div class="player-progress-fill" id="progressFill">
+                        <div class="player-progress-thumb"></div>
+                    </div>
+                </div>
+                <span class="player-time-label" id="timeTotal">00:00</span>
+            </div>
+            <div class="player-controls-row">
+                <div class="player-info-block">
+                    <div class="player-song-title" id="playerTitle">选择一颗星星</div>
+                    <div class="player-song-artist">陈粒</div>
+                </div>
+                <button class="ctrl-btn" id="btnPrev" title="上一首" aria-label="上一首">⏮</button>
+                <button class="ctrl-btn play-pause" id="btnPlay" title="播放" aria-label="播放">▶</button>
+                <button class="ctrl-btn" id="btnNext" title="下一首" aria-label="下一首">⏭</button>
+                <button class="ctrl-btn" id="btnVolume" title="音量" aria-label="音量">🔊</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 歌曲列表 Sheet ==================== -->
+    <div class="tracklist-overlay" id="tracklistOverlay"></div>
+    <div class="tracklist-sheet" id="tracklistSheet">
+        <div class="tracklist-handle"></div>
+        <div class="tracklist-header">🎵 歌曲列表 · 共 <span id="tracklistCount">32</span> 首</div>
+        <div class="tracklist-scroll" id="tracklistScroll"></div>
+    </div>
+
+    <!-- ==================== Toast ==================== -->
+    <div class="toast error" id="toastError"></div>
+    <div class="toast info" id="toastInfo"></div>
+
+    <!-- ==================== 页脚 ==================== -->
+    <div class="footer-dedication">
+        <span>✨ 送给小周 · 致敬独立音乐人陈粒</span>
+    </div>
+
+    <!-- ==================== JavaScript ==================== -->
+    <script>
+    (function(){
+        'use strict';
+
+        // ============================================================
+        // 歌曲数据 —— 32 首陈粒热门歌曲
+        // 每首歌对应 audio/ 文件夹下的 MP3 文件
+        // 文件命名: audio/两位序号-拼音.mp3  例如 audio/01-qimiaonengli-ge.mp3
+        // ============================================================
+        const SONG_DATA = [
+            // ── 专辑《如也》2015 ──
+            { name:'奇妙能力歌',       file:'01-qimiaonengli-ge.mp3',    color:'#c4b5fd' },
+            { name:'走马',             file:'02-zouma.mp3',              color:'#67e8f9' },
+            { name:'易燃易爆炸',       file:'03-yiranyibaozha.mp3',      color:'#f9a8d4' },
+            { name:'光',               file:'04-guang.mp3',              color:'#fde68a' },
+            { name:'如也',             file:'05-ruye.mp3',               color:'#a5f3fc' },
+            { name:'历历万乡',         file:'06-liliwanxiang.mp3',       color:'#d8b4fe' },
+            { name:'绝对占有 相对自由', file:'07-jueduizhanyou.mp3',      color:'#93c5fd' },
+            { name:'正趣果上果',       file:'08-zhengquguoshangguo.mp3', color:'#fda4af' },
+            { name:'种种',             file:'09-zhongzhong.mp3',         color:'#7dd3fc' },
+            { name:'不灭',             file:'10-bumie.mp3',              color:'#c7d2fe' },
+
+            // ── 专辑《小梦大半》2016 ──
+            { name:'小半',             file:'11-xiaoban.mp3',            color:'#fbbf7c' },
+            { name:'虚拟',             file:'12-xuni.mp3',               color:'#e8c8ff' },
+            { name:'芳草地',           file:'13-fangcaodi.mp3',          color:'#86efac' },
+            { name:'桥豆麻袋',         file:'14-qiaodoumadai.mp3',       color:'#fca5a5' },
+            { name:'怪不得',           file:'15-guaibude.mp3',           color:'#a5b4fc' },
+            { name:'自渡',             file:'16-zidu.mp3',               color:'#d4a5fc' },
+            { name:'大梦',             file:'17-dameng.mp3',             color:'#67d8f9' },
+            { name:'无生无',           file:'18-wushengwu.mp3',          color:'#fcd34d' },
+            { name:'任朝暮',           file:'19-renzhaomu.mp3',          color:'#bae6fd' },
+            { name:'睡吧',             file:'20-shuiba.mp3',             color:'#ddd6fe' },
+
+            // ── 其他专辑 & 单曲 ──
+            { name:'奇妙能力歌(Live)', file:'21-qimiaonenglilive.mp3',   color:'#fecdd3' },
+            { name:'夜神仙',           file:'22-yeshenxian.mp3',         color:'#a7f3d0' },
+            { name:'青原',             file:'23-qingyuan.mp3',           color:'#c4b5fd' },
+            { name:'空舞',             file:'24-kongwu.mp3',             color:'#f9a8d4' },
+            { name:'泛灵',             file:'25-fanling.mp3',            color:'#93c5fd' },
+            { name:'第七日',           file:'26-diqiri.mp3',             color:'#fde68a' },
+            { name:'蓝',               file:'27-lan.mp3',                color:'#67c8f9' },
+            { name:'早上好',           file:'28-zaoshanghao.mp3',        color:'#fbbf7c' },
+            { name:'比如世界',         file:'29-birushijie.mp3',         color:'#d8b4fe' },
+            { name:'悠长假期',         file:'30-youchangjiaqi.mp3',      color:'#a5f3fc' },
+            { name:'拜拜',             file:'31-baibai.mp3',             color:'#fda4af' },
+            { name:'花开',             file:'32-huakai.mp3',             color:'#e8c0ff' },
+        ];
+
+        const ARTIST_NAME = '陈粒';
+        const AUDIO_DIR = 'audio/';
+
+        // ============================================================
+        // DOM 缓存
+        // ============================================================
+        const $ = (s,c) => (c||document).querySelector(s);
+        const $$ = (s,c) => [...(c||document).querySelectorAll(s)];
+
+        const nebulaCanvas = $('#nebulaCanvas');
+        const ctx = nebulaCanvas.getContext('2d');
+        const starSystem = $('#starSystem');
+        const centralBtn = $('#centralStarBtn');
+        const centralHint = $('#centralHint');
+        const playerSheet = $('#playerSheet');
+        const btnPlay = $('#btnPlay');
+        const btnPrev = $('#btnPrev');
+        const btnNext = $('#btnNext');
+        const btnVolume = $('#btnVolume');
+        const playerTitle = $('#playerTitle');
+        const timeCurrent = $('#timeCurrent');
+        const timeTotal = $('#timeTotal');
+        const progressTrack = $('#progressTrack');
+        const progressFill = $('#progressFill');
+        const tracklistToggle = $('#tracklistToggle');
+        const tracklistOverlay = $('#tracklistOverlay');
+        const tracklistSheet = $('#tracklistSheet');
+        const tracklistScroll = $('#tracklistScroll');
+        const tracklistCount = $('#tracklistCount');
+        const toastError = $('#toastError');
+        const toastInfo = $('#toastInfo');
+        const audioEl = new Audio();
+
+        // ============================================================
+        // 状态
+        // ============================================================
+        let isExpanded = false;
+        let currentIndex = -1;
+        let isPlaying = false;
+        let isMuted = false;
+        let smallStarEls = [];
+        let starPositions = [];
+        let tracklistItems = [];
+        let toastTimer = null;
+
+        // ============================================================
+        // CANVAS 星云背景
+        // ============================================================
+        const particles = [];
+        const PARTICLE_COUNT = 200;
+
+        class NebulaParticle {
+            constructor(init) { this.reset(init); }
+            reset(init) {
+                this.x = init ? Math.random() * nebulaCanvas.width : -30;
+                this.y = init ? Math.random() * nebulaCanvas.height : Math.random() * nebulaCanvas.height;
+                const a = Math.random() * Math.PI * 2;
+                const s = 0.08 + Math.random() * 0.45;
+                this.vx = Math.cos(a) * s;
+                this.vy = Math.sin(a) * s - 0.12;
+                this.r = Math.random() * 2.0 + 0.3;
+                this.life = 1;
+                this.decay = 0.00025 + Math.random() * 0.0009;
+                this.phase = Math.random() * Math.PI * 2;
+                this.phaseSpeed = 0.008 + Math.random() * 0.028;
+                const pal = [
+                    [165,110,225],[55,175,200],[195,75,145],
+                    [75,115,215],[215,175,95],[130,90,200],
+                ];
+                this.color = pal[Math.floor(Math.random()*pal.length)];
+                this.isBright = Math.random() > 0.82;
+            }
+            update() {
+                this.x += this.vx; this.y += this.vy;
+                this.life -= this.decay; this.phase += this.phaseSpeed;
+                if (this.life <= 0 || this.x < -40 || this.x > nebulaCanvas.width+40
+                    || this.y < -40 || this.y > nebulaCanvas.height+40) this.reset(false);
+            }
+            draw(c) {
+                const alpha = this.life * (0.35 + 0.65 * Math.abs(Math.sin(this.phase)));
+                const [r,g,b] = this.color;
+                c.beginPath();
+                c.arc(this.x, this.y, this.r, 0, Math.PI*2);
+                c.fillStyle = `rgba(${r},${g},${b},${alpha.toFixed(2)})`;
+                c.fill();
+                if (this.isBright) {
+                    c.beginPath();
+                    c.arc(this.x, this.y, this.r*3, 0, Math.PI*2);
+                    c.fillStyle = `rgba(${r},${g},${b},${(alpha*0.18).toFixed(2)})`;
+                    c.fill();
+                }
+            }
+        }
+
+        function resizeCanvas() {
+            nebulaCanvas.width = window.innerWidth;
+            nebulaCanvas.height = window.innerHeight;
+        }
+
+        function drawNebulaClouds() {
+            const w = nebulaCanvas.width, h = nebulaCanvas.height;
+            const cx = w/2, cy = h/2;
+            const clouds = [
+                [cx*0.55, cy*0.65, 'rgba(85,30,145,0.10)', 'rgba(40,15,80,0.04)', w*0.55],
+                [cx*1.35, cy*0.35, 'rgba(18,115,155,0.09)', 'rgba(8,55,75,0.03)', w*0.48],
+                [cx*0.40, cy*1.40, 'rgba(155,35,95,0.07)', 'rgba(75,18,45,0.02)', w*0.42],
+                [cx, cy, 'rgba(120,80,200,0.05)', 'transparent', w*0.35],
+            ];
+            clouds.forEach(([x,y,c1,c2,r]) => {
+                const grad = ctx.createRadialGradient(x, y, 30, cx, cy, r);
+                grad.addColorStop(0, c1);
+                grad.addColorStop(0.55, c2);
+                grad.addColorStop(1, 'transparent');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0,0,w,h);
+            });
+        }
+
+        function animateCanvas() {
+            ctx.fillStyle = '#06060f';
+            ctx.fillRect(0,0,nebulaCanvas.width,nebulaCanvas.height);
+            drawNebulaClouds();
+            particles.forEach(p => { p.update(); p.draw(ctx); });
+            requestAnimationFrame(animateCanvas);
+        }
+
+        function initCanvas() {
+            resizeCanvas();
+            particles.length = 0;
+            for (let i=0; i<PARTICLE_COUNT; i++) particles.push(new NebulaParticle(true));
+            animateCanvas();
+            window.addEventListener('resize', () => resizeCanvas());
+        }
+
+        // ============================================================
+        // Toast 提示
+        // ============================================================
+        function showToast(msg, type='error') {
+            const el = type === 'info' ? toastInfo : toastError;
+            el.textContent = msg;
+            el.classList.add('show');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+        }
+
+        // ============================================================
+        // 音频引擎（本地 MP3 文件）
+        // ============================================================
+        function fmtTime(s) {
+            if (!isFinite(s) || isNaN(s) || s<0) return '00:00';
+            const m = Math.floor(s/60), sec = Math.floor(s%60);
+            return `${m.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
+        }
+
+        /** 获取歌曲的本地音频路径 */
+        function getAudioPath(index) {
+            if (index < 0 || index >= SONG_DATA.length) return '';
+            return AUDIO_DIR + SONG_DATA[index].file;
+        }
+
+        /** 检查音频文件是否存在（通过尝试加载） */
+        function checkAudioExists(index) {
+            return new Promise((resolve) => {
+                const path = getAudioPath(index);
+                if (!path) { resolve(false); return; }
+                const testAudio = new Audio();
+                testAudio.volume = 0;
+                const cleanup = () => {
+                    testAudio.removeEventListener('canplaythrough', onSuccess);
+                    testAudio.removeEventListener('error', onError);
+                    testAudio.src = '';
+                };
+                const onSuccess = () => { cleanup(); resolve(true); };
+                const onError = () => { cleanup(); resolve(false); };
+                testAudio.addEventListener('canplaythrough', onSuccess, {once:true});
+                testAudio.addEventListener('error', onError, {once:true});
+                testAudio.src = path;
+                testAudio.load();
+                // 超时回退
+                setTimeout(() => { cleanup(); resolve(false); }, 3000);
+            });
+        }
+
+        /** 播放指定歌曲 */
+        async function playSong(index) {
+            if (index < 0 || index >= SONG_DATA.length) return;
+
+            // 同一首歌 → 切换播放/暂停
+            if (index === currentIndex && audioEl.src && audioEl.readyState > 0) {
+                togglePlay();
+                return;
+            }
+
+            // 切歌
+            currentIndex = index;
+            const song = SONG_DATA[index];
+            const path = getAudioPath(index);
+
+            playerTitle.textContent = song.name;
+            playerSheet.classList.add('visible');
+            updateTracklistActive();
+            updatePlayingStar();
+
+            audioEl.src = path;
+            audioEl.dataset.songIndex = index;
+            audioEl.load();
+
+            try {
+                await audioEl.play();
+                isPlaying = true;
+                updatePlayBtn();
+                updatePlayingStar();
+            } catch(e) {
+                console.warn('播放失败:', e.message);
+                isPlaying = false;
+                updatePlayBtn();
+                updatePlayingStar();
+                if (e.name === 'NotSupportedError') {
+                    showToast('⚠️ 找不到音频文件，请将 MP3 放入 audio/ 文件夹');
+                } else {
+                    showToast('⚠️ 播放失败: ' + e.message);
+                }
+            }
+        }
+
+        function togglePlay() {
+            if (currentIndex < 0) return;
+            if (isPlaying) {
+                audioEl.pause();
+                isPlaying = false;
+            } else {
+                audioEl.play().then(() => { isPlaying = true; }).catch(e => {
+                    isPlaying = false;
+                    showToast('⚠️ 播放被阻止: ' + e.message);
+                });
+            }
+            updatePlayBtn();
+            updatePlayingStar();
+        }
+
+        function playPrev() {
+            if (currentIndex < 0) { playSong(SONG_DATA.length-1); return; }
+            playSong((currentIndex - 1 + SONG_DATA.length) % SONG_DATA.length);
+        }
+
+        function playNext() {
+            if (currentIndex < 0) { playSong(0); return; }
+            playSong((currentIndex + 1) % SONG_DATA.length);
+        }
+
+        function updatePlayBtn() {
+            btnPlay.textContent = isPlaying ? '⏸' : '▶';
+        }
+
+        function updatePlayingStar() {
+            smallStarEls.forEach((el,i) => {
+                el.classList.toggle('playing', i === currentIndex && isPlaying);
+            });
+        }
+
+        // 音频事件监听
+        audioEl.addEventListener('loadedmetadata', () => {
+            timeTotal.textContent = fmtTime(audioEl.duration);
+        });
+        audioEl.addEventListener('timeupdate', () => {
+            if (audioEl.duration && isFinite(audioEl.duration)) {
+                progressFill.style.width = (audioEl.currentTime / audioEl.duration * 100) + '%';
+                timeCurrent.textContent = fmtTime(audioEl.currentTime);
+            }
+        });
+        audioEl.addEventListener('play', () => {
+            isPlaying = true; updatePlayBtn(); updatePlayingStar();
+            playerSheet.classList.add('visible');
+        });
+        audioEl.addEventListener('pause', () => {
+            isPlaying = false; updatePlayBtn(); updatePlayingStar();
+        });
+        audioEl.addEventListener('ended', () => {
+            isPlaying = false; updatePlayBtn(); updatePlayingStar();
+            progressFill.style.width = '0%';
+            timeCurrent.textContent = '00:00';
+            // 自动播放下一首
+            playNext();
+        });
+        audioEl.addEventListener('error', () => {
+            isPlaying = false; updatePlayBtn(); updatePlayingStar();
+            showToast('⚠️ 音频加载失败，请检查 audio/ 文件夹中是否有对应 MP3 文件');
+        });
+        audioEl.volume = 0.72;
+
+        // 按钮事件
+        btnPlay.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (currentIndex < 0) playSong(0);
+            else togglePlay();
+        });
+        btnPrev.addEventListener('click', (e) => { e.stopPropagation(); playPrev(); });
+        btnNext.addEventListener('click', (e) => { e.stopPropagation(); playNext(); });
+        btnVolume.addEventListener('click', (e) => {
+            e.stopPropagation();
+            isMuted = !isMuted;
+            audioEl.muted = isMuted;
+            btnVolume.textContent = isMuted ? '🔇' : '🔊';
+        });
+
+        // 进度条点击
+        progressTrack.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (!audioEl.duration || !isFinite(audioEl.duration)) return;
+            const rect = progressTrack.getBoundingClientRect();
+            const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+            audioEl.currentTime = ratio * audioEl.duration;
+        });
+
+        // ============================================================
+        // 星星系统（32 颗星，3 条螺旋臂布局）
+        // ============================================================
+        function calcStarPositions() {
+            const count = SONG_DATA.length;
+            const isMobile = window.innerWidth <= 768;
+            const baseR = isMobile ? 60 : 80;
+            const arms = 3; // 3 条螺旋臂
+            const goldenAngle = 2.3999632;
+            const armAngleStep = (Math.PI * 2) / arms;
+
+            return SONG_DATA.map((_, i) => {
+                const arm = i % arms;
+                const idxInArm = Math.floor(i / arms);
+                const angle = arm * armAngleStep + idxInArm * goldenAngle;
+                const dist = baseR + idxInArm * (isMobile ? 8 : 12);
+                return { x: Math.cos(angle) * dist, y: Math.sin(angle) * dist };
+            });
+        }
+
+        function createSmallStars() {
+            smallStarEls.forEach(s => s.remove());
+            smallStarEls = [];
+            starPositions = calcStarPositions();
+
+            SONG_DATA.forEach((song, i) => {
+                const {x, y} = starPositions[i];
+                const btn = document.createElement('button');
+                btn.className = 'small-star-el';
+                btn.setAttribute('aria-label', song.name);
+                btn.style.setProperty('--sx', x+'px');
+                btn.style.setProperty('--sy', y+'px');
+                btn.style.setProperty('--sc', song.color);
+                btn.style.setProperty('--sd', (i*0.025)+'s');
+                btn.innerHTML = `
+                    <svg class="small-star-svg" viewBox="0 0 38 38">
+                        <defs>
+                            <radialGradient id="ssg${i}" cx="50%" cy="40%" r="55%">
+                                <stop offset="0%" stop-color="#fff"/>
+                                <stop offset="45%" stop-color="${song.color}"/>
+                                <stop offset="100%" stop-color="${song.color}55"/>
+                            </radialGradient>
+                        </defs>
+                        <polygon points="19,1.5 23,13 35.5,13 25.5,20.5 29.5,34 19,26 8.5,34 12.5,20.5 2.5,13 15,13"
+                                 fill="url(#ssg${i})"/>
+                    </svg>
+                    <span class="star-tooltip">${song.name}</span>
+                `;
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    playSong(i);
+                });
+                btn.addEventListener('touchstart', () => {
+                    const tip = btn.querySelector('.star-tooltip');
+                    if (tip) {
+                        tip.style.opacity='1';
+                        tip.style.transform='translateX(-50%) translateY(0)';
+                        clearTimeout(btn._tt);
+                        btn._tt = setTimeout(() => {
+                            tip.style.opacity='';
+                            tip.style.transform='';
+                        }, 1600);
+                    }
+                }, {passive:true});
+
+                starSystem.appendChild(btn);
+                smallStarEls.push(btn);
+            });
+        }
+
+        function expandStars() {
+            isExpanded = true;
+            centralHint.textContent = '✦ 再次点击收回 ✦';
+            smallStarEls.forEach(s => s.classList.add('expanded'));
+        }
+
+        function collapseStars() {
+            isExpanded = false;
+            centralHint.textContent = '✦ 点击展开星云 ✦';
+            smallStarEls.forEach(s => s.classList.remove('expanded'));
+        }
+
+        centralBtn.addEventListener('click', () => {
+            isExpanded ? collapseStars() : expandStars();
+        });
+
+        // ============================================================
+        // 歌曲列表 Sheet
+        // ============================================================
+        function buildTracklist() {
+            tracklistScroll.innerHTML = '';
+            tracklistItems = [];
+            tracklistCount.textContent = SONG_DATA.length;
+
+            SONG_DATA.forEach((song, i) => {
+                const item = document.createElement('button');
+                item.className = 'tracklist-item';
+                item.innerHTML = `
+                    <span class="tracklist-num">${(i+1).toString().padStart(2,'0')}</span>
+                    <span class="tracklist-info">
+                        <div class="tracklist-name">${song.name}</div>
+                        <div class="tracklist-artist">${song.artist || ARTIST_NAME}</div>
+                    </span>
+                    <span class="tracklist-dot">♪</span>
+                `;
+                item.addEventListener('click', () => playSong(i));
+                tracklistScroll.appendChild(item);
+                tracklistItems.push(item);
+            });
+            updateTracklistActive();
+        }
+
+        function updateTracklistActive() {
+            tracklistItems.forEach((item, i) => {
+                item.classList.toggle('active', i === currentIndex);
+                const dot = item.querySelector('.tracklist-dot');
+                if (dot) dot.textContent = (i === currentIndex && isPlaying) ? '♪' : '';
+            });
+        }
+
+        function openTracklist() {
+            tracklistOverlay.classList.add('open');
+            tracklistSheet.classList.add('open');
+        }
+        function closeTracklist() {
+            tracklistOverlay.classList.remove('open');
+            tracklistSheet.classList.remove('open');
+        }
+        tracklistToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            tracklistOverlay.classList.contains('open') ? closeTracklist() : openTracklist();
+        });
+        tracklistOverlay.addEventListener('click', closeTracklist);
+
+        // 点空白收星云
+        document.addEventListener('click', (e) => {
+            if (isExpanded &&
+                !e.target.closest('.central-star-btn') &&
+                !e.target.closest('.small-star-el') &&
+                !e.target.closest('.player-sheet') &&
+                !e.target.closest('.tracklist-sheet') &&
+                !e.target.closest('.tracklist-overlay') &&
+                !e.target.closest('#tracklistToggle')) {
+                collapseStars();
+            }
+        });
+
+        // 键盘快捷键
+        document.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            switch(e.code) {
+                case 'Space': e.preventDefault();
+                    if (currentIndex<0) playSong(0); else togglePlay(); break;
+                case 'ArrowLeft':  e.preventDefault(); playPrev(); break;
+                case 'ArrowRight': e.preventDefault(); playNext(); break;
+                case 'ArrowUp':    e.preventDefault(); audioEl.volume = Math.min(1, audioEl.volume+0.1); break;
+                case 'ArrowDown':  e.preventDefault(); audioEl.volume = Math.max(0, audioEl.volume-0.1); break;
+                case 'KeyM':       e.preventDefault();
+                    isMuted=!isMuted; audioEl.muted=isMuted;
+                    btnVolume.textContent=isMuted?'🔇':'🔊'; break;
+            }
+        });
+
+        // 响应式
+        let resizeTimer;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+                starPositions = calcStarPositions();
+                smallStarEls.forEach((el,i) => {
+                    const p = starPositions[i];
+                    el.style.setProperty('--sx', p.x+'px');
+                    el.style.setProperty('--sy', p.y+'px');
+                });
+            }, 250);
+        });
+
+        // ============================================================
+        // 启动
+        // ============================================================
+        function init() {
+            initCanvas();
+            createSmallStars();
+            buildTracklist();
+            audioEl.volume = 0.72;
+
+            console.log('%c🌟 陈粒 · 星云音乐站 %c已就绪',
+                'font-size:16px;color:#d8b0f0;', '');
+            console.log('%c   📁 音频文件路径: audio/ 文件夹', 'color:#a89cc8;');
+            console.log('%c   🖱 点击中央星星 → 展开 32 首歌曲星云', 'color:#a89cc8;');
+            console.log('%c   ⌨ 空格 → 播放/暂停 | ←→ 切歌 | ↑↓ 音量 | M 静音', 'color:#a89cc8;');
+            console.log('%c   ✨ 送给小周 · 致敬独立音乐人陈粒', 'color:#d8b0f0;');
+        }
+
+        init();
+    })();
+    </script>
+</body>
+</html>
