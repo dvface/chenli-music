@@ -751,12 +751,13 @@
         // 智能播放引擎 — 双路径加载 + 防竞态
         // 始终只使用 audio/ 文件夹中的自有 MP3，绝不从第三方抓取
         // ============================================================
-        let playAttemptId = 0;        // 防止快速切歌竞态
-        const LOAD_TIMEOUT = 8000;    // 8 秒加载超时
+        let playAttemptId = 0;          // 防止快速切歌竞态
+        const LOAD_TIMEOUT = 20000;    // 20 秒加载超时（GitHub Pages 慢速连接兜底）
 
         function tryPlayPath(path, attemptId) {
             return new Promise((resolve) => {
                 let settled = false;
+                let canPlayFired = false;
                 const finish = (result) => {
                     if (settled) return;
                     settled = true;
@@ -766,22 +767,33 @@
                 };
 
                 const timer = setTimeout(() => finish(false), LOAD_TIMEOUT);
+
+                const onCanPlay = () => {
+                    canPlayFired = true;
+                    // canplay 触发 → 缓冲足够，重试播放
+                    audioEl.play().then(() => finish(true), () => finish(false));
+                };
                 const onErr = () => finish(false);
                 const cleanup = () => {
+                    audioEl.removeEventListener('canplay', onCanPlay);
                     audioEl.removeEventListener('error', onErr);
                 };
 
+                audioEl.addEventListener('canplay', onCanPlay, { once: true });
                 audioEl.addEventListener('error', onErr, { once: true });
                 audioEl.src = path;
                 audioEl.load();
 
-                // 关键：同步调用 play()，保持在用户点击手势上下文中
-                // 若放在 canplay 回调里则手势已过期，浏览器会拒绝播放
+                // 同步 play() → 保留用户手势上下文
                 const p = audioEl.play();
                 if (p && p.then) {
-                    p.then(() => finish(true), () => finish(false));
+                    p.then(() => finish(true), () => {
+                        // play() 失败（缓冲不足）→ 不 settle，等 canplay 兜底
+                        // 若 canplay 已在此之前触发，则为时已晚，立即报错
+                        if (canPlayFired) finish(false);
+                    });
                 } else {
-                    finish(true); // 旧浏览器 play() 不返回 Promise
+                    finish(true);
                 }
             });
         }
@@ -823,19 +835,8 @@
             audioEl.dataset.loading = 'true';
 
             const fileName = song.file;
-            let success = false;
-
-            // 路径1: 相对路径 — 本地和 GitHub Pages 均适用
             const relativePath = AUDIO_DIR + fileName;
-            success = await tryPlayPath(relativePath, myAttemptId);
-
-            // 路径2: 同源绝对路径 — 处理中文文件名编码差异
-            if (!success && playAttemptId === myAttemptId && window.location.protocol !== 'file:') {
-                const baseUrl = window.location.origin + window.location.pathname;
-                const absolutePath = baseUrl + AUDIO_DIR + encodeURI(fileName);
-                console.log('相对路径失败，尝试同源绝对路径:', absolutePath);
-                success = await tryPlayPath(absolutePath, myAttemptId);
-            }
+            const success = await tryPlayPath(relativePath, myAttemptId);
 
             // 请求已过期 → 静默退出
             if (playAttemptId !== myAttemptId) {
@@ -854,14 +855,13 @@
                 startLyrics();
                 console.log('✅ 播放成功:', fileName);
             } else {
+                // 彻底重置音频元素，避免残留状态导致后续操作失效
+                audioEl.removeAttribute('src');
+                audioEl.load();
                 isPlaying = false;
                 updatePlayBtn();
                 updatePlayingStar();
-                if (window.location.protocol === 'file:') {
-                    showToast('⚠️ 找不到文件，请确认 audio/ 中有 ' + fileName);
-                } else {
-                    showToast('⚠️ 加载失败，请刷新页面后重试 [' + fileName + ']');
-                }
+                showToast('⚠️ 加载超时，请检查网络后重试 [' + fileName + ']');
                 console.error('❌ 播放失败:', relativePath);
             }
         }
