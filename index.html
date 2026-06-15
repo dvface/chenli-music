@@ -759,49 +759,29 @@
         // 始终只使用 audio/ 文件夹中的自有 MP3，绝不从第三方抓取
         // ============================================================
         let playAttemptId = 0;          // 防止快速切歌竞态
-        const LOAD_TIMEOUT = 20000;    // 20 秒加载超时（GitHub Pages 慢速连接兜底）
+        const LOAD_TIMEOUT = 30000;    // 30 秒（GitHub Pages / CDN 慢速兜底）
 
         function tryPlayPath(path, attemptId) {
             return new Promise((resolve) => {
                 let settled = false;
-                let canPlayFired = false;
-                const finish = (result) => {
+                const done = (ok) => {
                     if (settled) return;
                     settled = true;
                     clearTimeout(timer);
                     cleanup();
-                    resolve(playAttemptId === attemptId ? result : false);
+                    resolve(playAttemptId === attemptId && ok);
                 };
-
-                const timer = setTimeout(() => finish(false), LOAD_TIMEOUT);
-
-                const onCanPlay = () => {
-                    canPlayFired = true;
-                    // canplay 触发 → 缓冲足够，重试播放
-                    audioEl.play().then(() => finish(true), () => finish(false));
-                };
-                const onErr = () => finish(false);
+                const timer = setTimeout(() => done(false), LOAD_TIMEOUT);
+                const onErr = () => done(false);
+                const onPlay = () => done(true);
                 const cleanup = () => {
-                    audioEl.removeEventListener('canplay', onCanPlay);
+                    audioEl.removeEventListener('playing', onPlay);
                     audioEl.removeEventListener('error', onErr);
                 };
-
-                audioEl.addEventListener('canplay', onCanPlay, { once: true });
+                audioEl.addEventListener('playing', onPlay, { once: true });
                 audioEl.addEventListener('error', onErr, { once: true });
                 audioEl.src = path;
-                audioEl.load();
-
-                // 同步 play() → 保留用户手势上下文
-                const p = audioEl.play();
-                if (p && p.then) {
-                    p.then(() => finish(true), () => {
-                        // play() 失败（缓冲不足）→ 不 settle，等 canplay 兜底
-                        // 若 canplay 已在此之前触发，则为时已晚，立即报错
-                        if (canPlayFired) finish(false);
-                    });
-                } else {
-                    finish(true);
-                }
+                audioEl.play().catch(() => {});
             });
         }
 
@@ -878,8 +858,8 @@
                 isPlaying = false;
                 updatePlayBtn();
                 updatePlayingStar();
-                showToast('⚠️ 加载超时，请检查网络后重试 [' + fileName + ']');
-                console.error('❌ 播放失败:', relativePath);
+                showToast('⚠️ 加载失败，请检查网络 [' + fileName + ']');
+                console.error('❌ 播放失败:', fileName);
             }
         }
 
