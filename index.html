@@ -78,18 +78,21 @@
         .song-star {
             position:absolute;
             /* 视觉大小 */
-            width:22px; height:22px;
+            width:30px; height:30px;
             /* 扩大点击区域 */
-            padding:12px;
-            transform:translate(-50%, -50%);
-            cursor:pointer; z-index:5;
+            padding:14px;
+            /* 不在这里设 transform，交给动画控制 */
+            cursor:pointer; z-index:8;
             background:none; border:none;
             -webkit-tap-highlight-color:transparent;
-            /* 每个星星独立的漂浮动画参数 */
+            /* 闪烁 + 漂浮（缓慢、小幅度） */
             animation:
                 starTwinkle var(--tw-dur, 3s) ease-in-out var(--tw-del, 0s) infinite,
-                starFloat  var(--fl-dur, 12s) ease-in-out var(--fl-del, 0s) infinite;
-            transition: transform 0.3s var(--spring);
+                starFloat  var(--fl-dur, 20s) ease-in-out var(--fl-del, 0s) infinite;
+        }
+        /* 悬浮时暂停漂浮，让点击更稳定 */
+        .song-star:hover {
+            animation-play-state: paused, paused;
         }
 
         /* 星星光点 */
@@ -165,9 +168,9 @@
         /* 缓慢漂浮 */
         @keyframes starFloat {
             0%,100% { transform:translate(-50%, -50%) translate(0, 0); }
-            25%  { transform:translate(-50%, -50%) translate(var(--fx, 6px), var(--fy, -4px)); }
-            50%  { transform:translate(-50%, -50%) translate(var(--fx2, -3px), var(--fy2, -8px)); }
-            75%  { transform:translate(-50%, -50%) translate(var(--fx3, -7px), var(--fy3, -2px)); }
+            25%  { transform:translate(-50%, -50%) translate(var(--fx, 2px), var(--fy, -2px)); }
+            50%  { transform:translate(-50%, -50%) translate(var(--fx2, -2px), var(--fy2, -3px)); }
+            75%  { transform:translate(-50%, -50%) translate(var(--fx3, -2px), var(--fy3, -1px)); }
         }
 
         /* ============================================================
@@ -407,7 +410,7 @@
         @media screen and (max-width:768px) {
             .header { padding:12px 16px 4px; }
             .header-title { font-size:16px; }
-            .song-star { width:18px; height:18px; padding:10px; }
+            .song-star { width:26px; height:26px; padding:12px; }
             .star-label { font-size:10px; top:-26px; padding:3px 8px; }
             .footer-avatar-ring { width:26px; height:26px; }
             .footer-dedication { gap:7px; }
@@ -423,7 +426,7 @@
             .lyrics-line.next-line .lyrics-char { font-size:14px; }
         }
         @media screen and (max-width:400px) {
-            .song-star { width:15px; height:15px; padding:8px; }
+            .song-star { width:22px; height:22px; padding:10px; }
             .star-label { font-size:9px; top:-22px; }
             .footer-avatar-ring { width:22px; height:22px; }
             .player-sheet { padding:8px 10px; margin:0 4px calc(4px + var(--safe-bottom)); border-radius:14px; }
@@ -1031,13 +1034,13 @@
             const signX = Math.random() > 0.5 ? 1 : -1;
             const signY = Math.random() > 0.5 ? 1 : -1;
             return {
-                fx:  (4 + Math.random() * 8) * signX,
-                fy:  (3 + Math.random() * 6) * signY,
-                fx2: (3 + Math.random() * 7) * -signX,
-                fy2: (4 + Math.random() * 7) * -signY,
-                fx3: (2 + Math.random() * 8) * (Math.random() > 0.5 ? 1 : -1),
-                fy3: (2 + Math.random() * 6) * (Math.random() > 0.5 ? 1 : -1),
-                fld: 10 + Math.random() * 14,    // 漂浮周期 10-24s
+                fx:  (1 + Math.random() * 3) * signX,
+                fy:  (1 + Math.random() * 3) * signY,
+                fx2: (1 + Math.random() * 3) * -signX,
+                fy2: (1 + Math.random() * 3) * -signY,
+                fx3: (1 + Math.random() * 2) * (Math.random() > 0.5 ? 1 : -1),
+                fy3: (1 + Math.random() * 2) * (Math.random() > 0.5 ? 1 : -1),
+                fld: 18 + Math.random() * 16,    // 漂浮周期 18-34s（更慢）
                 twd: 2.5 + Math.random() * 3.5,   // 闪烁周期 2.5-6s
             };
         }
