@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>陈粒 - 星云音乐站</title>
+    <title>陈粒 · 星云音乐团</title>
     <style>
         /* ============================================================
            CSS 变量 & 基础重置
@@ -89,6 +89,12 @@
             animation:
                 starTwinkle var(--tw-dur, 3s) ease-in-out var(--tw-del, 0s) infinite,
                 starFloat  var(--fl-dur, 20s) ease-in-out var(--fl-del, 0s) infinite;
+            transition: opacity 0.2s ease;
+        }
+        .song-star:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 4px;
+            border-radius: 50%;
         }
         /* 悬浮时暂停漂浮，让点击更稳定 */
         .song-star:hover {
@@ -143,6 +149,38 @@
         @keyframes playPulse {
             0%,100% { transform:scale(1); }
             50% { transform:scale(1.55); }
+        }
+
+        /* 加载中 */
+        .song-star.loading::before {
+            animation: loadSpin 1s linear infinite;
+            box-shadow:
+                0 0 8px  var(--sc),
+                0 0 20px var(--sc),
+                0 0 40px var(--sg, var(--sc));
+        }
+        @keyframes loadSpin {
+            0%   { transform:rotate(0deg) scale(1.15); }
+            50%  { transform:rotate(180deg) scale(1.35); }
+            100% { transform:rotate(360deg) scale(1.15); }
+        }
+
+        /* prefers-reduced-motion 全局适配 */
+        @media (prefers-reduced-motion: reduce) {
+            .song-star,
+            .song-star::before,
+            .song-star.playing::before,
+            .song-star.loading::before {
+                animation-duration: 0s !important;
+                animation-delay: 0s !important;
+            }
+            .footer-avatar-ring {
+                animation-duration: 0s !important;
+            }
+            .ctrl-btn,
+            .tracklist-item {
+                transition-duration: 0s !important;
+            }
         }
 
         /* 歌名浮动标签 */
@@ -447,7 +485,7 @@
     <div class="app-container">
         <!-- 标题栏 -->
         <header class="header">
-            <span class="header-title">✦ 陈粒 · 星云音乐站</span>
+            <span class="header-title">✦ 陈粒 · 星云音乐团</span>
             <button class="header-btn" id="tracklistToggle" aria-label="歌曲列表">☰</button>
         </header>
 
@@ -474,10 +512,20 @@
                     <div class="player-song-title" id="playerTitle">选择一颗星星</div>
                     <div class="player-song-artist">陈粒</div>
                 </div>
-                <button class="ctrl-btn" id="btnPrev" title="上一首" aria-label="上一首">⏮</button>
-                <button class="ctrl-btn play-pause" id="btnPlay" title="播放" aria-label="播放">▶</button>
-                <button class="ctrl-btn" id="btnNext" title="下一首" aria-label="下一首">⏭</button>
-                <button class="ctrl-btn" id="btnVolume" title="音量" aria-label="音量">🔊</button>
+                <button class="ctrl-btn" id="btnPrev" title="上一首" aria-label="上一首">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="19 20 9 12 19 4"/><line x1="5" y1="19" x2="5" y2="5"/></svg>
+                </button>
+                <button class="ctrl-btn play-pause" id="btnPlay" title="播放" aria-label="播放">
+                    <svg id="playIcon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21"/></svg>
+                    <svg id="pauseIcon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none" style="display:none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                </button>
+                <button class="ctrl-btn" id="btnNext" title="下一首" aria-label="下一首">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 4 15 12 5 20"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+                </button>
+                <button class="ctrl-btn" id="btnVolume" title="音量" aria-label="音量">
+                    <svg id="volOn" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                    <svg id="volOff" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+                </button>
             </div>
         </div>
     </div>
@@ -546,6 +594,10 @@
         const btnPrev = $('#btnPrev');
         const btnNext = $('#btnNext');
         const btnVolume = $('#btnVolume');
+        const playIcon = $('#playIcon');
+        const pauseIcon = $('#pauseIcon');
+        const volOnIcon = $('#volOn');
+        const volOffIcon = $('#volOff');
         const playerTitle = $('#playerTitle');
         const timeCurrent = $('#timeCurrent');
         const timeTotal = $('#timeTotal');
@@ -559,6 +611,8 @@
         const toastError = $('#toastError');
         const toastInfo = $('#toastInfo');
         const audioEl = new Audio();
+        // 预加载音频元素（静默加载下一首）
+        const preloadEl = new Audio();
 
         // ============================================================
         // 状态
@@ -569,6 +623,7 @@
         let songStars = [];
         let tracklistItems = [];
         let toastTimer = null;
+        let isLoading = false;           // 加载中标记
 
         // ============================================================
         // CANVAS 深空背景引擎（增强版）
@@ -694,95 +749,129 @@
             return AUDIO_DIR + SONG_DATA[index].file;
         }
 
+        // 预加载下一首（静默，不触发任何 UI 变化）
+        function preloadNext() {
+            const nextIdx = (currentIndex + 1) % SONG_DATA.length;
+            const nextPath = AUDIO_DIR + SONG_DATA[nextIdx].file;
+            preloadEl.src = nextPath;
+            preloadEl.load();
+        }
+
         // ============================================================
-        // 在线 API 回退 — 当本地 MP3 不可用时，从网易云获取播放链接
+        // 智能播放引擎 — 双路径加载 + 预加载 + 防竞态
+        // 始终只使用 audio/ 文件夹中的自有 MP3，绝不从第三方抓取
         // ============================================================
-        async function fetchSongUrlOnline(songId) {
-            // 多个 API 端点依次尝试
-            const endpoints = [
-                // Meting API (最可靠)
-                `https://api.injahow.cn/meting/?type=url&id=${songId}&server=netease&br=320000`,
-                // 网易云直链 (部分歌曲可跨域)
-                `https://music.163.com/song/media/outer/url?id=${songId}.mp3`,
-            ];
-            for (const endpoint of endpoints) {
-                try {
-                    const controller = new AbortController();
-                    const timeout = setTimeout(() => controller.abort(), 6000);
-                    const resp = await fetch(endpoint, { signal: controller.signal });
-                    clearTimeout(timeout);
-                    if (!resp.ok) continue;
-                    const data = await resp.json().catch(() => null);
-                    if (data && data.url) {
-                        return data.url;
-                    }
-                } catch(e) { /* 静默继续 */ }
+        let playAttemptId = 0;        // 防止快速切歌竞态
+        const LOAD_TIMEOUT = 8000;    // 8 秒加载超时
+
+        function tryPlayPath(path, attemptId) {
+            return new Promise((resolve) => {
+                let settled = false;
+                const finish = (result) => {
+                    if (settled) return;
+                    settled = true;
+                    clearTimeout(timer);
+                    cleanup();
+                    // 始终 resolve，避免 Promise 悬挂；过期结果以 false 处理
+                    resolve(playAttemptId === attemptId ? result : false);
+                };
+
+                const timer = setTimeout(() => finish(false), LOAD_TIMEOUT);
+
+                const onCanPlay = () => {
+                    audioEl.play().then(() => finish(true)).catch(() => finish(false));
+                };
+                const onErr = () => finish(false);
+                const cleanup = () => {
+                    audioEl.removeEventListener('canplay', onCanPlay);
+                    audioEl.removeEventListener('error', onErr);
+                };
+
+                audioEl.addEventListener('canplay', onCanPlay, { once: true });
+                audioEl.addEventListener('error', onErr, { once: true });
+                audioEl.src = path;
+                audioEl.load();
+            });
+        }
+
+        function setStarLoading(index, loading) {
+            if (index >= 0 && index < songStars.length) {
+                songStars[index].classList.toggle('loading', loading);
             }
-            // 最后尝试直链
-            return `https://music.163.com/song/media/outer/url?id=${songId}.mp3`;
         }
 
         async function playSong(index) {
             if (index < 0 || index >= SONG_DATA.length) return;
 
+            // 同一首歌且已加载 → 切换播放/暂停
             if (index === currentIndex && audioEl.src && audioEl.readyState > 0) {
                 togglePlay();
                 return;
             }
 
+            // 递增版本号，使之前的加载请求失效
+            playAttemptId++;
+            const myAttemptId = playAttemptId;
+            const prevIndex = currentIndex;
+
+            // 清除旧星加载状态
+            setStarLoading(prevIndex, false);
+
             currentIndex = index;
+            isLoading = true;
             const song = SONG_DATA[index];
 
             playerTitle.textContent = song.name;
             playerSheet.classList.add('visible');
             updateTracklistActive();
             updatePlayingStar();
+            setStarLoading(index, true);  // 显示加载指示
 
             audioEl.dataset.songIndex = index;
+            audioEl.dataset.loading = 'true';
 
-            // 策略：优先本地文件（快），失败则走在线 API
-            let loaded = false;
+            const fileName = song.file;
+            let success = false;
 
-            // 1) 尝试本地文件
-            const localPath = getAudioPath(index);
-            if (localPath) {
-                audioEl.src = localPath;
-                audioEl.load();
-                try {
-                    await audioEl.play();
-                    isPlaying = true;
-                    loaded = true;
-                } catch(e) { /* 本地失败，继续尝试在线 */ }
+            // 路径1: 相对路径 — 本地和 GitHub Pages 均适用
+            const relativePath = AUDIO_DIR + fileName;
+            success = await tryPlayPath(relativePath, myAttemptId);
+
+            // 路径2: 同源绝对路径 — 处理中文文件名编码差异
+            if (!success && playAttemptId === myAttemptId && window.location.protocol !== 'file:') {
+                const baseUrl = window.location.origin + window.location.pathname;
+                const absolutePath = baseUrl + AUDIO_DIR + encodeURI(fileName);
+                console.log('相对路径失败，尝试同源绝对路径:', absolutePath);
+                success = await tryPlayPath(absolutePath, myAttemptId);
             }
 
-            // 2) 本地失败 → 尝试在线 API
-            if (!loaded && song.nid) {
-                try {
-                    const url = await fetchSongUrlOnline(song.nid);
-                    if (url) {
-                        audioEl.src = url;
-                        audioEl.load();
-                        await audioEl.play();
-                        isPlaying = true;
-                        loaded = true;
-                    }
-                } catch(e) { /* 在线也失败 */ }
+            // 请求已过期 → 静默退出
+            if (playAttemptId !== myAttemptId) {
+                audioEl.dataset.loading = 'false';
+                return;
             }
 
-            // 3) 结果处理
-            if (loaded) {
+            audioEl.dataset.loading = 'false';
+            isLoading = false;
+            setStarLoading(index, false);
+
+            if (success) {
+                isPlaying = true;
                 updatePlayBtn();
                 updatePlayingStar();
                 startLyrics();
+                preloadNext();             // 后台预加载下一首
+                console.log('✅ 播放成功:', fileName);
             } else {
                 isPlaying = false;
                 updatePlayBtn();
                 updatePlayingStar();
-                if (!localPath || song.nid) {
-                    showToast('⚠️ 本地文件缺失，在线获取也失败，请检查网络');
+                if (window.location.protocol === 'file:') {
+                    showToast('⚠️ 找不到文件，请确认 audio/ 中有 ' + fileName);
                 } else {
-                    showToast('⚠️ 找不到音频文件，请将 MP3 放入 audio/ 文件夹');
+                    showToast('⚠️ 加载失败，请刷新页面后重试 [' + fileName + ']');
                 }
+                console.error('❌ 播放失败:', relativePath);
             }
         }
 
@@ -790,15 +879,12 @@
             if (currentIndex < 0) return;
             if (isPlaying) {
                 audioEl.pause();
-                isPlaying = false;
             } else {
-                audioEl.play().then(() => { isPlaying = true; }).catch(e => {
-                    isPlaying = false;
-                    showToast('⚠️ 播放被阻止: ' + e.message);
+                audioEl.play().catch(e => {
+                    showToast('⚠️ 播放被阻止，请再次点击播放');
+                    updatePlayBtn();
                 });
             }
-            updatePlayBtn();
-            updatePlayingStar();
         }
 
         function playPrev() {
@@ -812,7 +898,13 @@
         }
 
         function updatePlayBtn() {
-            btnPlay.textContent = isPlaying ? '⏸' : '▶';
+            if (isPlaying) {
+                playIcon.style.display = 'none';
+                pauseIcon.style.display = '';
+            } else {
+                playIcon.style.display = '';
+                pauseIcon.style.display = 'none';
+            }
         }
 
         function updatePlayingStar() {
@@ -845,8 +937,11 @@
             playNext();
         });
         audioEl.addEventListener('error', () => {
+            // 仅处理播放中途的意外错误；加载阶段的错误由 playSong 处理
+            if (audioEl.dataset.loading === 'true') return;
+            if (!audioEl.src || audioEl.src === window.location.href) return;
             isPlaying = false; updatePlayBtn(); updatePlayingStar();
-            showToast('⚠️ 音频加载失败，请检查 audio/ 文件夹');
+            showToast('⚠️ 播放中断，请重试');
         });
         audioEl.volume = 0.72;
 
@@ -862,7 +957,8 @@
             e.stopPropagation();
             isMuted = !isMuted;
             audioEl.muted = isMuted;
-            btnVolume.textContent = isMuted ? '🔇' : '🔊';
+            volOnIcon.style.display = isMuted ? 'none' : '';
+            volOffIcon.style.display = isMuted ? '' : 'none';
         });
 
         progressTrack.addEventListener('click', (e) => {
@@ -883,6 +979,7 @@
         let nextLineEl = null;
         let activeIdx = -1;
         let lyricsRAF = null;
+        let lyricsSongIdx = -1;       // 当前歌词所属歌曲，防止竞态
 
         function parseLRC(text) {
             const lines = [];
@@ -917,15 +1014,19 @@
             return el;
         }
 
-        async function loadLyrics() {
-            const song = SONG_DATA[currentIndex];
+        async function loadLyrics(songIdx) {
+            const song = SONG_DATA[songIdx];
             if (!song) return;
+            if (songIdx !== currentIndex) return;  // 歌曲已切换，中止
             try {
                 const resp = await fetch(AUDIO_DIR + song.file.replace('.mp3', '.lrc'));
                 if (!resp.ok) throw new Error('no lrc');
+                if (songIdx !== currentIndex) return;  // 解析前再检查
                 lyricsData = parseLRC(await resp.text());
             } catch(e) { lyricsData = []; }
+            if (songIdx !== currentIndex) return;      // 最终检查
 
+            lyricsSongIdx = songIdx;
             lyricsStage.innerHTML = '';
             currentLineEl = null; nextLineEl = null; activeIdx = -1;
 
@@ -940,8 +1041,9 @@
         }
 
         function updateLyrics() {
-            if (!lyricsData.length || currentIndex < 0) {
-                lyricsRAF = requestAnimationFrame(updateLyrics); return;
+            // 歌曲已切换或无歌词 → 停止 RAF，不再循环
+            if (lyricsSongIdx !== currentIndex || !lyricsData.length) {
+                lyricsRAF = null; return;
             }
             const t = audioEl.currentTime + LYRICS_LEAD;
             let newIdx = -1;
@@ -990,12 +1092,16 @@
         }
 
         async function startLyrics() {
-            cancelAnimationFrame(lyricsRAF);
+            if (lyricsRAF) { cancelAnimationFrame(lyricsRAF); lyricsRAF = null; }
             lyricsData = []; activeIdx = -1;
+            lyricsSongIdx = -1;
             lyricsStage.innerHTML = '';
             currentLineEl = null; nextLineEl = null;
-            await loadLyrics();
-            updateLyrics();
+            const songIdx = currentIndex;
+            await loadLyrics(songIdx);
+            if (songIdx === currentIndex && lyricsData.length) {
+                updateLyrics();
+            }
         }
 
         // ============================================================
@@ -1161,7 +1267,8 @@
                 case 'ArrowDown':  e.preventDefault(); audioEl.volume = Math.max(0, audioEl.volume-0.1); break;
                 case 'KeyM':       e.preventDefault();
                     isMuted=!isMuted; audioEl.muted=isMuted;
-                    btnVolume.textContent=isMuted?'🔇':'🔊'; break;
+                    volOnIcon.style.display=isMuted?'none':'';
+                    volOffIcon.style.display=isMuted?'':'none'; break;
             }
         });
 
@@ -1188,9 +1295,9 @@
             buildTracklist();
             audioEl.volume = 0.72;
 
-            console.log('%c🌟 陈粒 · 星云音乐站 %c已就绪',
+            console.log('%c🌟 陈粒 · 星云音乐团 %c已就绪',
                 'font-size:16px;color:#d8b0f0;', '');
-            console.log('%c   🎵 16首 · 本地MP3优先 | 在线API回退', 'color:#a89cc8;');
+            console.log('%c   🎵 16首 · 纯本地MP3播放 | 不依赖在线API', 'color:#a89cc8;');
             console.log('%c   ✨ 点击星星 → 播放 | ⌨ 空格 → 暂停 | ←→ 切歌 | ↑↓ 音量',
                 'color:#a89cc8;');
         }
