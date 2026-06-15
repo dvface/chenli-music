@@ -747,6 +747,13 @@
             return AUDIO_DIR + SONG_DATA[index].file;
         }
 
+        // jsDelivr CDN 加速（中国有节点，免费）
+        const CDN_BASE = 'https://cdn.jsdelivr.net/gh/dvface/chenli-music@main/';
+        function getCDNPath(index) {
+            if (index < 0 || index >= SONG_DATA.length) return '';
+            return CDN_BASE + AUDIO_DIR + encodeURI(SONG_DATA[index].file);
+        }
+
         // ============================================================
         // 智能播放引擎 — 双路径加载 + 防竞态
         // 始终只使用 audio/ 文件夹中的自有 MP3，绝不从第三方抓取
@@ -835,8 +842,18 @@
             audioEl.dataset.loading = 'true';
 
             const fileName = song.file;
-            const relativePath = AUDIO_DIR + fileName;
-            const success = await tryPlayPath(relativePath, myAttemptId);
+            let success = false;
+
+            // 路径1: jsDelivr CDN（国内加速）
+            const cdnPath = getCDNPath(index);
+            success = await tryPlayPath(cdnPath, myAttemptId);
+
+            // 路径2: 本地/同源相对路径（CDN 失败时兜底）
+            if (!success && playAttemptId === myAttemptId) {
+                const localPath = AUDIO_DIR + fileName;
+                console.log('CDN 失败，回退本地路径:', localPath);
+                success = await tryPlayPath(localPath, myAttemptId);
+            }
 
             // 请求已过期 → 静默退出
             if (playAttemptId !== myAttemptId) {
