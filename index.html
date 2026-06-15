@@ -611,8 +611,6 @@
         const toastError = $('#toastError');
         const toastInfo = $('#toastInfo');
         const audioEl = new Audio();
-        // 预加载音频元素（静默加载下一首）
-        const preloadEl = new Audio();
 
         // ============================================================
         // 状态
@@ -749,16 +747,8 @@
             return AUDIO_DIR + SONG_DATA[index].file;
         }
 
-        // 预加载下一首（静默，不触发任何 UI 变化）
-        function preloadNext() {
-            const nextIdx = (currentIndex + 1) % SONG_DATA.length;
-            const nextPath = AUDIO_DIR + SONG_DATA[nextIdx].file;
-            preloadEl.src = nextPath;
-            preloadEl.load();
-        }
-
         // ============================================================
-        // 智能播放引擎 — 双路径加载 + 预加载 + 防竞态
+        // 智能播放引擎 — 双路径加载 + 防竞态
         // 始终只使用 audio/ 文件夹中的自有 MP3，绝不从第三方抓取
         // ============================================================
         let playAttemptId = 0;        // 防止快速切歌竞态
@@ -772,25 +762,27 @@
                     settled = true;
                     clearTimeout(timer);
                     cleanup();
-                    // 始终 resolve，避免 Promise 悬挂；过期结果以 false 处理
                     resolve(playAttemptId === attemptId ? result : false);
                 };
 
                 const timer = setTimeout(() => finish(false), LOAD_TIMEOUT);
-
-                const onCanPlay = () => {
-                    audioEl.play().then(() => finish(true)).catch(() => finish(false));
-                };
                 const onErr = () => finish(false);
                 const cleanup = () => {
-                    audioEl.removeEventListener('canplay', onCanPlay);
                     audioEl.removeEventListener('error', onErr);
                 };
 
-                audioEl.addEventListener('canplay', onCanPlay, { once: true });
                 audioEl.addEventListener('error', onErr, { once: true });
                 audioEl.src = path;
                 audioEl.load();
+
+                // 关键：同步调用 play()，保持在用户点击手势上下文中
+                // 若放在 canplay 回调里则手势已过期，浏览器会拒绝播放
+                const p = audioEl.play();
+                if (p && p.then) {
+                    p.then(() => finish(true), () => finish(false));
+                } else {
+                    finish(true); // 旧浏览器 play() 不返回 Promise
+                }
             });
         }
 
@@ -860,7 +852,6 @@
                 updatePlayBtn();
                 updatePlayingStar();
                 startLyrics();
-                preloadNext();             // 后台预加载下一首
                 console.log('✅ 播放成功:', fileName);
             } else {
                 isPlaying = false;
