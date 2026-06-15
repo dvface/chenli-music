@@ -9,12 +9,12 @@
            CSS 变量 & 基础重置
            ============================================================ */
         :root {
-            --bg-primary: #06060f;
-            --bg-card: rgba(20, 16, 40, 0.65);
-            --bg-card-hover: rgba(30, 24, 55, 0.75);
-            --text-primary: #f2edff;
-            --text-secondary: #a89cc8;
-            --text-tertiary: #7468a0;
+            --bg-primary: #04060f;
+            --bg-card: rgba(14, 10, 30, 0.7);
+            --bg-card-hover: rgba(24, 18, 48, 0.8);
+            --text-primary: #f0eaff;
+            --text-secondary: #a098c8;
+            --text-tertiary: #6e6498;
             --accent: #c084d8;
             --radius-sm: 10px;
             --radius-md: 16px;
@@ -35,7 +35,7 @@
             user-select:none; -webkit-user-select:none;
         }
 
-        /* ========== Canvas 星云背景 ========== */
+        /* ========== Canvas 深空背景 ========== */
         #nebulaCanvas { position:fixed; inset:0; z-index:0; pointer-events:none; }
 
         /* ========== 主容器 ========== */
@@ -47,8 +47,10 @@
         /* ---------- 顶部标题栏 ---------- */
         .header {
             flex-shrink:0; padding:16px 24px 8px;
-            display:flex; align-items:center; justify-content:space-between; z-index:10;
+            display:flex; align-items:center; justify-content:space-between;
+            z-index:10; pointer-events:none;
         }
+        .header > * { pointer-events:all; }
         .header-title {
             font-size:18px; font-weight:600; letter-spacing:0.5px;
             background:linear-gradient(135deg, #e8d5ff, #b8c8ff);
@@ -67,118 +69,118 @@
 
         /* ---------- 星星展示区 ---------- */
         .star-stage {
-            flex:1; position:relative;
-            display:flex; align-items:center; justify-content:center; min-height:0;
-        }
-        .star-system { position:relative; width:0; height:0; }
-
-        /* ========== 中央大星星 ========== */
-        .central-star-btn {
-            position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
-            cursor:pointer; z-index:10; background:none; border:none;
-            -webkit-tap-highlight-color:transparent;
-            transition:transform 0.4s var(--spring);
-        }
-        .central-star-btn:active { transform:translate(-50%,-50%) scale(0.9); }
-
-        .central-star-rotate {
-            display:block;
-            animation:centralRotate 28s linear infinite;
-        }
-        @keyframes centralRotate { to { transform:rotate(360deg); } }
-
-        .central-star-svg {
-            display:block; width:90px; height:90px;
-            filter:drop-shadow(0 0 18px rgba(210,170,245,0.55)) drop-shadow(0 0 45px rgba(150,90,210,0.35));
-            animation:centralBreathe 3.2s ease-in-out infinite;
-        }
-        @keyframes centralBreathe {
-            0%,100% { transform:scale(1); }
-            50% { transform:scale(1.06); }
+            flex:1; position:relative; min-height:0; z-index:2;
         }
 
-        .central-halo {
-            position:absolute; top:50%; left:50%; border-radius:50%;
-            pointer-events:none; transform:translate(-50%,-50%);
-        }
-        .central-halo.outer {
-            width:210px; height:210px;
-            background:radial-gradient(circle, rgba(180,120,220,0.18) 0%, rgba(100,50,170,0.06) 45%, transparent 70%);
-            animation:haloPulse 4s ease-in-out infinite;
-        }
-        .central-halo.inner {
-            width:130px; height:130px;
-            background:radial-gradient(circle, rgba(230,200,255,0.28) 0%, rgba(180,140,220,0.1) 35%, transparent 65%);
-            animation:haloPulse 2.8s ease-in-out 0.5s infinite;
-        }
-        @keyframes haloPulse {
-            0%,100% { opacity:0.5; transform:translate(-50%,-50%) scale(1); }
-            50% { opacity:1; transform:translate(-50%,-50%) scale(1.12); }
-        }
-
-        .central-hint {
-            position:absolute; top:calc(50% + 64px); left:50%;
-            transform:translateX(-50%); font-size:12px; letter-spacing:2px;
-            color:var(--text-tertiary); white-space:nowrap; pointer-events:none;
-            animation:hintPulse 3.5s ease-in-out infinite;
-        }
-        @keyframes hintPulse {
-            0%,100% { opacity:0.3; }
-            50% { opacity:0.85; }
-        }
-
-        /* ========== 小星星（通用） ========== */
-        .small-star-el {
-            position:absolute; top:50%; left:50%;
-            width:38px; height:38px;
-            transform:translate(-50%,-50%) translate(var(--sx),var(--sy)) scale(var(--ss,0));
-            opacity:var(--so,0);
+        /* ============================================================
+           歌曲星星 — 发光圆点
+           ============================================================ */
+        .song-star {
+            position:absolute;
+            /* 视觉大小 */
+            width:22px; height:22px;
+            /* 扩大点击区域 */
+            padding:12px;
+            transform:translate(-50%, -50%);
             cursor:pointer; z-index:5;
-            transition:transform 0.65s var(--spring), opacity 0.45s ease;
-            transition-delay:var(--sd,0s);
             background:none; border:none;
             -webkit-tap-highlight-color:transparent;
+            /* 每个星星独立的漂浮动画参数 */
+            animation:
+                starTwinkle var(--tw-dur, 3s) ease-in-out var(--tw-del, 0s) infinite,
+                starFloat  var(--fl-dur, 12s) ease-in-out var(--fl-del, 0s) infinite;
+            transition: transform 0.3s var(--spring);
         }
-        .small-star-el.expanded { --ss:1; --so:1; }
 
-        .small-star-svg {
-            display:block; width:100%; height:100%;
-            filter:drop-shadow(0 0 7px var(--sc)) drop-shadow(0 0 16px var(--sc));
-            transition:filter 0.35s ease, transform 0.35s var(--spring);
+        /* 星星光点 */
+        .song-star::before {
+            content:'';
+            display:block;
+            width:100%; height:100%;
+            border-radius:50%;
+            background:radial-gradient(circle at 40% 35%,
+                rgba(255,255,255,0.95) 0%,
+                var(--sc) 35%,
+                transparent 70%);
+            box-shadow:
+                0 0 6px  var(--sc),
+                0 0 14px var(--sc),
+                0 0 32px var(--sg, var(--sc));
+            transition: all 0.35s ease;
         }
-        .small-star-el:hover .small-star-svg {
-            transform:scale(1.35);
-            filter:drop-shadow(0 0 14px var(--sc)) drop-shadow(0 0 30px var(--sc));
+
+        /* 悬浮：明亮 */
+        .song-star:hover::before,
+        .song-star:active::before {
+            box-shadow:
+                0 0 12px #fff,
+                0 0 24px var(--sc),
+                0 0 48px var(--sg, var(--sc)),
+                0 0 72px var(--sg, var(--sc));
+            transform:scale(1.5);
         }
-        .small-star-el.playing .small-star-svg {
-            animation:starBounce 0.55s ease-in-out infinite;
-            filter:drop-shadow(0 0 18px #ffd25f) drop-shadow(0 0 38px #ff8c40);
+
+        /* 正在播放 */
+        .song-star.playing::before {
+            box-shadow:
+                0 0 10px #ffd25f,
+                0 0 24px #ffb840,
+                0 0 48px #ff8c30,
+                0 0 76px #ff6c20;
+            animation: playPulse 0.6s ease-in-out infinite;
         }
-        @keyframes starBounce {
+        .song-star.playing:hover::before {
+            box-shadow:
+                0 0 16px #fff,
+                0 0 32px #ffd25f,
+                0 0 56px #ffb840,
+                0 0 84px #ff8c30;
+        }
+
+        @keyframes playPulse {
             0%,100% { transform:scale(1); }
-            45% { transform:scale(1.28); }
+            50% { transform:scale(1.55); }
         }
 
-        .star-tooltip {
-            position:absolute; top:-34px; left:50%;
-            transform:translateX(-50%) translateY(5px);
-            background:rgba(10,8,28,0.92); color:#e4d8ff;
-            font-size:11px; font-weight:500; padding:5px 12px; border-radius:14px;
-            white-space:nowrap; pointer-events:none; letter-spacing:0.8px;
-            border:1px solid rgba(160,130,210,0.25);
+        /* 歌名浮动标签 */
+        .star-label {
+            position:absolute; top:-30px; left:50%;
+            transform:translateX(-50%) translateY(6px);
+            background:rgba(8,4,22,0.92); color:#e4d8ff;
+            font-size:11px; font-weight:500; padding:4px 10px; border-radius:12px;
+            white-space:nowrap; pointer-events:none; letter-spacing:0.6px;
+            border:1px solid rgba(140,110,200,0.2);
             opacity:0; transition:all 0.25s ease;
         }
-        .small-star-el:hover .star-tooltip { opacity:1; transform:translateX(-50%) translateY(0); }
+        .song-star:hover .star-label,
+        .song-star:active .star-label {
+            opacity:1; transform:translateX(-50%) translateY(0);
+        }
 
-        /* ========== 底部播放器卡片 ========== */
+        /* 闪烁 */
+        @keyframes starTwinkle {
+            0%,100% { opacity:0.6; }
+            50% { opacity:1; }
+        }
+        /* 缓慢漂浮 */
+        @keyframes starFloat {
+            0%,100% { transform:translate(-50%, -50%) translate(0, 0); }
+            25%  { transform:translate(-50%, -50%) translate(var(--fx, 6px), var(--fy, -4px)); }
+            50%  { transform:translate(-50%, -50%) translate(var(--fx2, -3px), var(--fy2, -8px)); }
+            75%  { transform:translate(-50%, -50%) translate(var(--fx3, -7px), var(--fy3, -2px)); }
+        }
+
+        /* ============================================================
+           底部播放器卡片
+           ============================================================ */
         .player-sheet {
-            flex-shrink:0;
+            flex-shrink:0; z-index:20;
             margin:0 12px calc(12px + var(--safe-bottom));
             background:var(--bg-card);
             backdrop-filter:blur(28px); -webkit-backdrop-filter:blur(28px);
             border:1px solid rgba(140,110,200,0.2);
             border-radius:var(--radius-lg);
-            padding:12px 16px; z-index:20;
+            padding:12px 16px;
             display:flex; flex-direction:column; gap:8px;
             opacity:0; transform:translateY(16px); pointer-events:none;
             transition:opacity 0.45s ease, transform 0.45s var(--spring);
@@ -302,7 +304,11 @@
         .tracklist-dot {
             width:16px; height:16px; flex-shrink:0; text-align:center; font-size:12px;
         }
-        .tracklist-item.active .tracklist-dot { color:var(--accent); animation:starBounce 0.55s ease-in-out infinite; }
+        .tracklist-item.active .tracklist-dot { color:var(--accent); animation:dotBounce 0.55s ease-in-out infinite; }
+        @keyframes dotBounce {
+            0%,100% { transform:scale(1); }
+            45% { transform:scale(1.28); }
+        }
 
         /* ========== Toast 提示 ========== */
         .toast {
@@ -319,12 +325,33 @@
         /* ========== 页脚 ========== */
         .footer-dedication {
             position:fixed; bottom:8px; left:0; right:0;
-            text-align:center; z-index:2; pointer-events:none;
+            z-index:2; pointer-events:none;
             padding-bottom:var(--safe-bottom);
+            display:flex; align-items:center; justify-content:center; gap:10px;
+        }
+        .footer-avatar-ring {
+            flex-shrink:0; pointer-events:all;
+            width:32px; height:32px;
+            border-radius:50%;
+            overflow:hidden;
+            border:2px solid rgba(180,150,210,0.45);
+            box-shadow:0 0 12px rgba(160,120,200,0.35), 0 0 28px rgba(140,100,190,0.18);
+            animation:avatarSpin 16s linear infinite;
+        }
+        .footer-avatar-ring:hover {
+            animation-play-state:paused;
+            box-shadow:0 0 18px rgba(200,160,240,0.55), 0 0 36px rgba(160,120,210,0.3);
+        }
+        .footer-avatar-ring img {
+            display:block; width:100%; height:100%;
+            object-fit:cover; object-position:top center;
+        }
+        @keyframes avatarSpin {
+            to { transform:rotate(360deg); }
         }
         .footer-dedication span {
             font-size:11px; font-weight:300; letter-spacing:1.5px;
-            color:rgba(180,150,210,0.55);
+            color:rgba(180,150,210,0.5);
             text-shadow:0 0 8px rgba(160,120,200,0.3);
             animation:footerGlow 5s ease-in-out infinite;
         }
@@ -333,9 +360,11 @@
             50% { text-shadow:0 0 16px rgba(160,120,200,0.55),0 0 30px rgba(120,80,180,0.2); }
         }
 
-        /* ========== 星尘歌词系统 ========== */
+        /* ============================================================
+           星尘歌词系统
+           ============================================================ */
         .lyrics-stage {
-            position:absolute; bottom:1vh; left:0; right:0;
+            position:absolute; bottom:3vh; left:0; right:0;
             pointer-events:none; z-index:3;
             display:flex; flex-direction:column;
             align-items:center; gap:1.5vh;
@@ -346,7 +375,6 @@
             transition:all 0.7s ease;
             text-align:center; width:100%;
         }
-        /* 当前行 — 亮白大字 */
         .lyrics-line.current-line {
             opacity:1; transform:translateY(0);
         }
@@ -360,7 +388,6 @@
             text-shadow:0 0 14px rgba(220,180,255,0.8),0 0 35px rgba(170,120,220,0.5);
             font-weight:400;
         }
-        /* 下一行 — 暗紫小字预览 */
         .lyrics-line.next-line {
             opacity:0.45;
         }
@@ -369,34 +396,21 @@
             color:rgba(180,155,215,0.7);
             text-shadow:0 0 4px rgba(140,110,180,0.2);
         }
-        /* 行切换动画 */
         .lyrics-line.switch-out {
             opacity:0; transform:translateY(-8px);
             transition:all 0.5s ease-in;
         }
 
-        @media screen and (max-width:768px) {
-            .lyrics-stage { bottom:3vh; padding:0 6vw; }
-            .lyrics-line.current-line .lyrics-char { font-size:20px; }
-            .lyrics-line.next-line .lyrics-char { font-size:14px; }
-        }
-        @media screen and (max-width:400px) {
-            .lyrics-stage { bottom:4vh; padding:0 4vw; }
-            .lyrics-line.current-line .lyrics-char { font-size:18px; }
-            .lyrics-line.next-line .lyrics-char { font-size:13px; }
-        }
-
-        /* ========== 响应式 ========== */
+        /* ============================================================
+           响应式
+           ============================================================ */
         @media screen and (max-width:768px) {
             .header { padding:12px 16px 4px; }
             .header-title { font-size:16px; }
-            /* 歌词响应式已在歌词区定义 */
-            .central-star-svg { width:68px; height:68px; }
-            .central-halo.outer { width:160px; height:160px; }
-            .central-halo.inner { width:100px; height:100px; }
-            .central-hint { font-size:10px; top:calc(50% + 50px); }
-            .small-star-el { width:28px; height:28px; }
-            .star-tooltip { font-size:9px; top:-26px; padding:3px 8px; }
+            .song-star { width:18px; height:18px; padding:10px; }
+            .star-label { font-size:10px; top:-26px; padding:3px 8px; }
+            .footer-avatar-ring { width:26px; height:26px; }
+            .footer-dedication { gap:7px; }
             .player-sheet { margin:0 8px calc(8px + var(--safe-bottom)); padding:10px 12px; gap:6px; }
             .player-song-title { font-size:13px; }
             .ctrl-btn.play-pause { width:36px; height:36px; font-size:18px; }
@@ -404,21 +418,26 @@
             .player-controls-row { gap:8px; }
             .tracklist-name { font-size:12px; }
             .tracklist-sheet { max-height:55vh; }
+            .lyrics-stage { bottom:5vh; padding:0 6vw; }
+            .lyrics-line.current-line .lyrics-char { font-size:20px; }
+            .lyrics-line.next-line .lyrics-char { font-size:14px; }
         }
         @media screen and (max-width:400px) {
-            .central-star-svg { width:56px; height:56px; }
-            .central-halo.outer { width:130px; height:130px; }
-            .central-halo.inner { width:82px; height:82px; }
-            .small-star-el { width:23px; height:23px; }
+            .song-star { width:15px; height:15px; padding:8px; }
+            .star-label { font-size:9px; top:-22px; }
+            .footer-avatar-ring { width:22px; height:22px; }
             .player-sheet { padding:8px 10px; margin:0 4px calc(4px + var(--safe-bottom)); border-radius:14px; }
             .player-song-title { font-size:12px; }
             .tracklist-name { font-size:11px; }
+            .lyrics-stage { bottom:6vh; padding:0 4vw; }
+            .lyrics-line.current-line .lyrics-char { font-size:18px; }
+            .lyrics-line.next-line .lyrics-char { font-size:13px; }
         }
     </style>
 </head>
 <body>
 
-    <!-- ==================== 星云 Canvas 背景 ==================== -->
+    <!-- ==================== 深空 Canvas 背景 ==================== -->
     <canvas id="nebulaCanvas"></canvas>
 
     <!-- ==================== 主容器 ==================== -->
@@ -430,41 +449,10 @@
         </header>
 
         <!-- 星星展示区 -->
-        <div class="star-stage">
+        <div class="star-stage" id="starStage">
             <!-- 星尘歌词层 -->
             <div class="lyrics-stage" id="lyricsStage"></div>
-            <div class="star-system" id="starSystem">
-                <!-- 中央大星星 -->
-                <button class="central-star-btn" id="centralStarBtn" aria-label="点击展开星云">
-                    <div class="central-halo outer"></div>
-                    <div class="central-halo inner"></div>
-                    <span class="central-star-rotate">
-                    <svg class="central-star-svg" viewBox="0 0 100 100">
-                        <defs>
-                            <radialGradient id="cgMain" cx="50%" cy="45%" r="52%">
-                                <stop offset="0%" stop-color="#fffdf7"/>
-                                <stop offset="28%" stop-color="#ffe4b8"/>
-                                <stop offset="58%" stop-color="#f0c060"/>
-                                <stop offset="100%" stop-color="#c08038"/>
-                            </radialGradient>
-                            <radialGradient id="cgGlow" cx="50%" cy="50%" r="50%">
-                                <stop offset="0%" stop-color="#ffffff" stop-opacity="0.85"/>
-                                <stop offset="45%" stop-color="#e0c0ff" stop-opacity="0.35"/>
-                                <stop offset="100%" stop-color="#8040c0" stop-opacity="0"/>
-                            </radialGradient>
-                        </defs>
-                        <circle cx="50" cy="50" r="49" fill="url(#cgGlow)"/>
-                        <polygon points="50,3 60,34 94,34 67,55 78,87 50,68 22,87 33,55 6,34 40,34"
-                                 fill="url(#cgMain)"/>
-                        <polygon points="50,17 54,40 78,40 58,56 64,80 50,64 36,80 42,56 22,40 46,40"
-                                 fill="rgba(255,255,255,0.3)"/>
-                        <circle cx="50" cy="50" r="7" fill="rgba(255,255,255,0.75)"/>
-                    </svg>
-                    </span>
-                    <div class="central-hint" id="centralHint">✦ 点击展开星云 ✦</div>
-                </button>
-                <!-- 小星星由 JS 动态插入 -->
-            </div>
+            <!-- 歌曲星星由 JS 动态插入 -->
         </div>
 
         <!-- 播放器卡片 -->
@@ -495,7 +483,7 @@
     <div class="tracklist-overlay" id="tracklistOverlay"></div>
     <div class="tracklist-sheet" id="tracklistSheet">
         <div class="tracklist-handle"></div>
-        <div class="tracklist-header">🎵 歌曲列表 · 共 <span id="tracklistCount">32</span> 首</div>
+        <div class="tracklist-header">🎵 歌曲列表 · 共 <span id="tracklistCount">16</span> 首</div>
         <div class="tracklist-scroll" id="tracklistScroll"></div>
     </div>
 
@@ -505,6 +493,9 @@
 
     <!-- ==================== 页脚 ==================== -->
     <div class="footer-dedication">
+        <div class="footer-avatar-ring">
+            <img src="avatar.jpg" alt="小周">
+        </div>
         <span>✨ 送给小周</span>
     </div>
 
@@ -514,26 +505,25 @@
         'use strict';
 
         // ============================================================
-        // 歌曲数据 —— 16 首陈粒热门歌曲（匹配 audio/ 文件夹实际文件）
-        // 添加新歌: 放入 audio/ 文件夹后在下方添加条目即可
+        // 歌曲数据 — 16 首陈粒热门歌曲
         // ============================================================
         const SONG_DATA = [
-            { name:'奇妙能力歌',            file:'奇妙能力歌 - 陈粒.mp3',              color:'#c4b5fd' },
-            { name:'走马',                  file:'走马 - 陈粒.mp3',                    color:'#67e8f9' },
-            { name:'易燃易爆炸',            file:'易燃易爆炸 - 陈粒.mp3',              color:'#f9a8d4' },
-            { name:'光',                    file:'光 - 陈粒.mp3',                      color:'#fde68a' },
-            { name:'如也',                  file:'如也 - 陈粒.mp3',                    color:'#a5f3fc' },
-            { name:'历历万乡',              file:'历历万乡 - 陈粒.mp3',                color:'#d8b4fe' },
-            { name:'小半',                  file:'小半 - 陈粒.mp3',                    color:'#fbbf7c' },
-            { name:'虚拟',                  file:'虚拟 - 陈粒.mp3',                    color:'#e8c8ff' },
-            { name:'芳草地',                file:'芳草地 - 陈粒.mp3',                  color:'#86efac' },
-            { name:'桥豆麻袋',              file:'桥豆麻袋 - 陈粒.mp3',                color:'#fca5a5' },
-            { name:'性空山',                file:'性空山 - 陈粒.mp3',                  color:'#d4a5fc' },
-            { name:'望穿',                  file:'望穿 - 陈粒.mp3',                    color:'#67d8f9' },
-            { name:'空空',                  file:'空空 - 陈粒.mp3',                    color:'#93c5fd' },
-            { name:'世界正中',              file:'世界正中 - 陈粒.mp3',                color:'#fcd34d' },
-            { name:'爱似流星',              file:'爱似流星 - 陈粒.mp3',                color:'#fda4af' },
-            { name:'绝对占有 相对自由',     file:'绝对占有 相对自由 (DJ QüarkLiu版) - 陈粒.mp3', color:'#c7d2fe' },
+            { name:'奇妙能力歌',            file:'奇妙能力歌 - 陈粒.mp3',              nid:'461347998', color:'#c4b5fd' },
+            { name:'走马',                  file:'走马 - 陈粒.mp3',                    nid:'30431367',   color:'#67e8f9' },
+            { name:'易燃易爆炸',            file:'易燃易爆炸 - 陈粒.mp3',              nid:'461544197', color:'#f9a8d4' },
+            { name:'光',                    file:'光 - 陈粒.mp3',                      nid:'30431368',   color:'#fde68a' },
+            { name:'如也',                  file:'如也 - 陈粒.mp3',                    nid:'30431365',   color:'#a5f3fc' },
+            { name:'历历万乡',              file:'历历万乡 - 陈粒.mp3',                nid:'30431369',   color:'#d8b4fe' },
+            { name:'小半',                  file:'小半 - 陈粒.mp3',                    nid:'421423806', color:'#fbbf7c' },
+            { name:'虚拟',                  file:'虚拟 - 陈粒.mp3',                    nid:'422094356', color:'#e8c8ff' },
+            { name:'芳草地',                file:'芳草地 - 陈粒.mp3',                  nid:'421423808', color:'#86efac' },
+            { name:'桥豆麻袋',              file:'桥豆麻袋 - 陈粒.mp3',                nid:'422094357', color:'#fca5a5' },
+            { name:'性空山',                file:'性空山 - 陈粒.mp3',                  nid:'30051774',   color:'#d4a5fc' },
+            { name:'望穿',                  file:'望穿 - 陈粒.mp3',                    nid:'1335907602',color:'#67d8f9' },
+            { name:'空空',                  file:'空空 - 陈粒.mp3',                    nid:'1487653554',color:'#93c5fd' },
+            { name:'世界正中',              file:'世界正中 - 陈粒.mp3',                nid:'1477379550',color:'#fcd34d' },
+            { name:'爱似流星',              file:'爱似流星 - 陈粒.mp3',                nid:'1487653555',color:'#fda4af' },
+            { name:'绝对占有 相对自由',     file:'绝对占有 相对自由 (DJ QüarkLiu版) - 陈粒.mp3', nid:'1487653556',color:'#c7d2fe' },
         ];
 
         const ARTIST_NAME = '陈粒';
@@ -547,9 +537,7 @@
 
         const nebulaCanvas = $('#nebulaCanvas');
         const ctx = nebulaCanvas.getContext('2d');
-        const starSystem = $('#starSystem');
-        const centralBtn = $('#centralStarBtn');
-        const centralHint = $('#centralHint');
+        const starStage = $('#starStage');
         const playerSheet = $('#playerSheet');
         const btnPlay = $('#btnPlay');
         const btnPrev = $('#btnPrev');
@@ -572,41 +560,43 @@
         // ============================================================
         // 状态
         // ============================================================
-        let isExpanded = false;
         let currentIndex = -1;
         let isPlaying = false;
         let isMuted = false;
-        let smallStarEls = [];
-        let starPositions = [];
+        let songStars = [];
         let tracklistItems = [];
         let toastTimer = null;
 
         // ============================================================
-        // CANVAS 星云背景
+        // CANVAS 深空背景引擎（增强版）
         // ============================================================
         const particles = [];
-        const PARTICLE_COUNT = 200;
+        const PARTICLE_COUNT = 350;
 
-        class NebulaParticle {
-            constructor(init) { this.reset(init); }
+        class SpaceParticle {
+            constructor(init) {
+                this.reset(init);
+            }
             reset(init) {
                 this.x = init ? Math.random() * nebulaCanvas.width : -30;
                 this.y = init ? Math.random() * nebulaCanvas.height : Math.random() * nebulaCanvas.height;
                 const a = Math.random() * Math.PI * 2;
-                const s = 0.08 + Math.random() * 0.45;
+                const s = 0.04 + Math.random() * 0.35;
                 this.vx = Math.cos(a) * s;
-                this.vy = Math.sin(a) * s - 0.12;
-                this.r = Math.random() * 2.0 + 0.3;
+                this.vy = Math.sin(a) * s - 0.08;
+                this.r = Math.random() * 1.8 + 0.15;
                 this.life = 1;
-                this.decay = 0.00025 + Math.random() * 0.0009;
+                this.decay = 0.00018 + Math.random() * 0.0007;
                 this.phase = Math.random() * Math.PI * 2;
-                this.phaseSpeed = 0.008 + Math.random() * 0.028;
+                this.phaseSpeed = 0.006 + Math.random() * 0.022;
+                // 色板：蓝紫 / 青 / 暖金 / 粉紫
                 const pal = [
-                    [165,110,225],[55,175,200],[195,75,145],
-                    [75,115,215],[215,175,95],[130,90,200],
+                    [140,100,220],[50,160,195],[190,130,80],
+                    [85,125,210],[210,165,100],[170,110,195],
+                    [100,145,215],[60,180,185],[200,155,115],
                 ];
                 this.color = pal[Math.floor(Math.random()*pal.length)];
-                this.isBright = Math.random() > 0.82;
+                this.isBright = Math.random() > 0.85;
             }
             update() {
                 this.x += this.vx; this.y += this.vy;
@@ -615,16 +605,19 @@
                     || this.y < -40 || this.y > nebulaCanvas.height+40) this.reset(false);
             }
             draw(c) {
-                const alpha = this.life * (0.35 + 0.65 * Math.abs(Math.sin(this.phase)));
+                const twinkle = 0.4 + 0.6 * Math.abs(Math.sin(this.phase));
+                const alpha = this.life * twinkle;
                 const [r,g,b] = this.color;
+                // 星点
                 c.beginPath();
                 c.arc(this.x, this.y, this.r, 0, Math.PI*2);
                 c.fillStyle = `rgba(${r},${g},${b},${alpha.toFixed(2)})`;
                 c.fill();
-                if (this.isBright) {
+                // 亮星 + 柔和光晕
+                if (this.isBright && this.r > 1.0) {
                     c.beginPath();
-                    c.arc(this.x, this.y, this.r*3, 0, Math.PI*2);
-                    c.fillStyle = `rgba(${r},${g},${b},${(alpha*0.18).toFixed(2)})`;
+                    c.arc(this.x, this.y, this.r*3.5, 0, Math.PI*2);
+                    c.fillStyle = `rgba(${r},${g},${b},${(alpha*0.12).toFixed(2)})`;
                     c.fill();
                 }
             }
@@ -638,14 +631,17 @@
         function drawNebulaClouds() {
             const w = nebulaCanvas.width, h = nebulaCanvas.height;
             const cx = w/2, cy = h/2;
+            // 6 层星云雾气
             const clouds = [
-                [cx*0.55, cy*0.65, 'rgba(85,30,145,0.10)', 'rgba(40,15,80,0.04)', w*0.55],
-                [cx*1.35, cy*0.35, 'rgba(18,115,155,0.09)', 'rgba(8,55,75,0.03)', w*0.48],
-                [cx*0.40, cy*1.40, 'rgba(155,35,95,0.07)', 'rgba(75,18,45,0.02)', w*0.42],
-                [cx, cy, 'rgba(120,80,200,0.05)', 'transparent', w*0.35],
+                [cx*0.50, cy*0.60, 'rgba(70,25,135,0.09)', 'rgba(35,10,70,0.03)', w*0.58],
+                [cx*1.40, cy*0.30, 'rgba(15,105,145,0.08)', 'rgba(6,45,65,0.02)', w*0.50],
+                [cx*0.35, cy*1.45, 'rgba(145,30,85,0.06)',  'rgba(65,15,38,0.02)', w*0.44],
+                [cx,      cy,      'rgba(110,70,195,0.05)', 'transparent',         w*0.38],
+                [cx*1.20, cy*1.15, 'rgba(30,90,170,0.06)',  'rgba(15,40,80,0.02)', w*0.40],
+                [cx*0.75, cy*0.25, 'rgba(90,40,160,0.05)',  'rgba(40,18,70,0.02)', w*0.35],
             ];
             clouds.forEach(([x,y,c1,c2,r]) => {
-                const grad = ctx.createRadialGradient(x, y, 30, cx, cy, r);
+                const grad = ctx.createRadialGradient(x, y, 20, cx, cy, r);
                 grad.addColorStop(0, c1);
                 grad.addColorStop(0.55, c2);
                 grad.addColorStop(1, 'transparent');
@@ -655,7 +651,7 @@
         }
 
         function animateCanvas() {
-            ctx.fillStyle = '#06060f';
+            ctx.fillStyle = '#04060f';
             ctx.fillRect(0,0,nebulaCanvas.width,nebulaCanvas.height);
             drawNebulaClouds();
             particles.forEach(p => { p.update(); p.draw(ctx); });
@@ -665,7 +661,7 @@
         function initCanvas() {
             resizeCanvas();
             particles.length = 0;
-            for (let i=0; i<PARTICLE_COUNT; i++) particles.push(new NebulaParticle(true));
+            for (let i=0; i<PARTICLE_COUNT; i++) particles.push(new SpaceParticle(true));
             animateCanvas();
             window.addEventListener('resize', () => resizeCanvas());
         }
@@ -682,7 +678,7 @@
         }
 
         // ============================================================
-        // 音频引擎（本地 MP3 文件）
+        // 音频引擎
         // ============================================================
         function fmtTime(s) {
             if (!isFinite(s) || isNaN(s) || s<0) return '00:00';
@@ -690,76 +686,99 @@
             return `${m.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
         }
 
-        /** 获取歌曲的本地音频路径 */
         function getAudioPath(index) {
             if (index < 0 || index >= SONG_DATA.length) return '';
             return AUDIO_DIR + SONG_DATA[index].file;
         }
 
-        /** 检查音频文件是否存在（通过尝试加载） */
-        function checkAudioExists(index) {
-            return new Promise((resolve) => {
-                const path = getAudioPath(index);
-                if (!path) { resolve(false); return; }
-                const testAudio = new Audio();
-                testAudio.volume = 0;
-                const cleanup = () => {
-                    testAudio.removeEventListener('canplaythrough', onSuccess);
-                    testAudio.removeEventListener('error', onError);
-                    testAudio.src = '';
-                };
-                const onSuccess = () => { cleanup(); resolve(true); };
-                const onError = () => { cleanup(); resolve(false); };
-                testAudio.addEventListener('canplaythrough', onSuccess, {once:true});
-                testAudio.addEventListener('error', onError, {once:true});
-                testAudio.src = path;
-                testAudio.load();
-                // 超时回退
-                setTimeout(() => { cleanup(); resolve(false); }, 3000);
-            });
+        // ============================================================
+        // 在线 API 回退 — 当本地 MP3 不可用时，从网易云获取播放链接
+        // ============================================================
+        async function fetchSongUrlOnline(songId) {
+            // 多个 API 端点依次尝试
+            const endpoints = [
+                // Meting API (最可靠)
+                `https://api.injahow.cn/meting/?type=url&id=${songId}&server=netease&br=320000`,
+                // 网易云直链 (部分歌曲可跨域)
+                `https://music.163.com/song/media/outer/url?id=${songId}.mp3`,
+            ];
+            for (const endpoint of endpoints) {
+                try {
+                    const controller = new AbortController();
+                    const timeout = setTimeout(() => controller.abort(), 6000);
+                    const resp = await fetch(endpoint, { signal: controller.signal });
+                    clearTimeout(timeout);
+                    if (!resp.ok) continue;
+                    const data = await resp.json().catch(() => null);
+                    if (data && data.url) {
+                        return data.url;
+                    }
+                } catch(e) { /* 静默继续 */ }
+            }
+            // 最后尝试直链
+            return `https://music.163.com/song/media/outer/url?id=${songId}.mp3`;
         }
 
-        /** 播放指定歌曲 */
         async function playSong(index) {
             if (index < 0 || index >= SONG_DATA.length) return;
 
-            // 同一首歌 → 切换播放/暂停
             if (index === currentIndex && audioEl.src && audioEl.readyState > 0) {
                 togglePlay();
                 return;
             }
 
-            // 切歌
             currentIndex = index;
             const song = SONG_DATA[index];
-            const path = getAudioPath(index);
 
             playerTitle.textContent = song.name;
             playerSheet.classList.add('visible');
             updateTracklistActive();
             updatePlayingStar();
 
-            audioEl.src = path;
             audioEl.dataset.songIndex = index;
-            audioEl.load();
 
-            // 启动星尘歌词
-            startLyrics();
+            // 策略：优先本地文件（快），失败则走在线 API
+            let loaded = false;
 
-            try {
-                await audioEl.play();
-                isPlaying = true;
+            // 1) 尝试本地文件
+            const localPath = getAudioPath(index);
+            if (localPath) {
+                audioEl.src = localPath;
+                audioEl.load();
+                try {
+                    await audioEl.play();
+                    isPlaying = true;
+                    loaded = true;
+                } catch(e) { /* 本地失败，继续尝试在线 */ }
+            }
+
+            // 2) 本地失败 → 尝试在线 API
+            if (!loaded && song.nid) {
+                try {
+                    const url = await fetchSongUrlOnline(song.nid);
+                    if (url) {
+                        audioEl.src = url;
+                        audioEl.load();
+                        await audioEl.play();
+                        isPlaying = true;
+                        loaded = true;
+                    }
+                } catch(e) { /* 在线也失败 */ }
+            }
+
+            // 3) 结果处理
+            if (loaded) {
                 updatePlayBtn();
                 updatePlayingStar();
-            } catch(e) {
-                console.warn('播放失败:', e.message);
+                startLyrics();
+            } else {
                 isPlaying = false;
                 updatePlayBtn();
                 updatePlayingStar();
-                if (e.name === 'NotSupportedError') {
-                    showToast('⚠️ 找不到音频文件，请将 MP3 放入 audio/ 文件夹');
+                if (!localPath || song.nid) {
+                    showToast('⚠️ 本地文件缺失，在线获取也失败，请检查网络');
                 } else {
-                    showToast('⚠️ 播放失败: ' + e.message);
+                    showToast('⚠️ 找不到音频文件，请将 MP3 放入 audio/ 文件夹');
                 }
             }
         }
@@ -794,12 +813,12 @@
         }
 
         function updatePlayingStar() {
-            smallStarEls.forEach((el,i) => {
+            songStars.forEach((el,i) => {
                 el.classList.toggle('playing', i === currentIndex && isPlaying);
             });
         }
 
-        // 音频事件监听
+        // 音频事件
         audioEl.addEventListener('loadedmetadata', () => {
             timeTotal.textContent = fmtTime(audioEl.duration);
         });
@@ -820,12 +839,11 @@
             isPlaying = false; updatePlayBtn(); updatePlayingStar();
             progressFill.style.width = '0%';
             timeCurrent.textContent = '00:00';
-            // 自动播放下一首
             playNext();
         });
         audioEl.addEventListener('error', () => {
             isPlaying = false; updatePlayBtn(); updatePlayingStar();
-            showToast('⚠️ 音频加载失败，请检查 audio/ 文件夹中是否有对应 MP3 文件');
+            showToast('⚠️ 音频加载失败，请检查 audio/ 文件夹');
         });
         audioEl.volume = 0.72;
 
@@ -844,7 +862,6 @@
             btnVolume.textContent = isMuted ? '🔇' : '🔊';
         });
 
-        // 进度条点击
         progressTrack.addEventListener('click', (e) => {
             e.stopPropagation();
             if (!audioEl.duration || !isFinite(audioEl.duration)) return;
@@ -854,10 +871,10 @@
         });
 
         // ============================================================
-        // 星尘歌词系统 — 双行显示 + 逐词点亮
+        // 星尘歌词系统
         // ============================================================
         const lyricsStage = document.getElementById('lyricsStage');
-        const LYRICS_LEAD = 0.55;    // 时间前置量（秒），歌词提前于歌声
+        const LYRICS_LEAD = 0.55;
         let lyricsData = [];
         let currentLineEl = null;
         let nextLineEl = null;
@@ -886,7 +903,6 @@
             return lines.filter((l,i) => i===0 || l.text !== lines[i-1].text || l.time - lines[i-1].time > 0.35);
         }
 
-        /** 构建一行 DOM */
         function buildLineEl(text, className) {
             const el = document.createElement('div');
             el.className = 'lyrics-line ' + className;
@@ -924,18 +940,15 @@
             if (!lyricsData.length || currentIndex < 0) {
                 lyricsRAF = requestAnimationFrame(updateLyrics); return;
             }
-            // 时间前置：加上 LYRICS_LEAD 让歌词提前出现
             const t = audioEl.currentTime + LYRICS_LEAD;
             let newIdx = -1;
             for (let i = lyricsData.length-1; i >= 0; i--) {
                 if (t >= lyricsData[i].time) { newIdx = i; break; }
             }
             if (newIdx !== activeIdx && newIdx >= 0) {
-                // 跳过初始 -1→0（首行已在 loadLyrics 中渲染）
                 if (activeIdx >= 0) switchLine(newIdx);
                 activeIdx = newIdx;
             }
-            // 逐字点亮当前行
             if (currentLineEl && activeIdx >= 0) {
                 const item = lyricsData[activeIdx];
                 const chars = currentLineEl.querySelectorAll('.lyrics-char');
@@ -949,26 +962,21 @@
             lyricsRAF = requestAnimationFrame(updateLyrics);
         }
 
-        /** 切换到新行 */
         function switchLine(newIdx) {
             if (!currentLineEl) return;
-            // 旧当前行淡出移除
             currentLineEl.classList.add('switch-out');
             const old = currentLineEl;
             setTimeout(() => old.remove(), 500);
-            // 下一行提升为当前行
             if (nextLineEl) {
                 nextLineEl.classList.remove('next-line');
                 nextLineEl.classList.add('current-line');
                 nextLineEl.querySelectorAll('.lyrics-char').forEach(s => s.classList.remove('lit'));
             }
             currentLineEl = nextLineEl;
-            // 兜底：重建当前行
             if (!currentLineEl) {
                 currentLineEl = buildLineEl(lyricsData[newIdx].text, 'current-line');
                 lyricsStage.appendChild(currentLineEl);
             }
-            // 创建新的下一行
             const nxt = newIdx + 1;
             if (nxt < lyricsData.length) {
                 nextLineEl = buildLineEl(lyricsData[nxt].text, 'next-line');
@@ -987,98 +995,108 @@
             updateLyrics();
         }
 
-        function stopLyrics() {
-            cancelAnimationFrame(lyricsRAF);
-            lyricsData = []; activeIdx = -1;
-            lyricsStage.innerHTML = '';
-            currentLineEl = null; nextLineEl = null;
-        }
+        // ============================================================
+        // 歌曲星星系统 — 有机散布 + 漂浮动画
+        // ============================================================
+        function randomBetween(a, b) { return a + Math.random() * (b - a); }
 
-        // ============================================================
-        // 星星系统（16 颗星，3 条螺旋臂布局）
-        // ============================================================
+        /** 计算星星在舞台中的有机分布位置 */
         function calcStarPositions() {
             const count = SONG_DATA.length;
-            const isMobile = window.innerWidth <= 768;
-            const baseR = isMobile ? 65 : 90;
-            const arms = 3; // 3 条螺旋臂
-            const goldenAngle = 2.3999632;
-            const armAngleStep = (Math.PI * 2) / arms;
+            const rect = starStage.getBoundingClientRect();
+            const stageW = rect.width;
+            const stageH = rect.height;
+            const cx = stageW / 2;
+            const cy = stageH / 2;
+            const maxR = Math.min(stageW, stageH) * 0.40;
 
+            // 使用黄金角度螺旋 + sqrt 分布，保证均匀自然的散布
+            const goldenAngle = 2.3999632;
             return SONG_DATA.map((_, i) => {
-                const arm = i % arms;
-                const idxInArm = Math.floor(i / arms);
-                const angle = arm * armAngleStep + idxInArm * goldenAngle;
-                const dist = baseR + idxInArm * (isMobile ? 14 : 20);
-                return { x: Math.cos(angle) * dist, y: Math.sin(angle) * dist };
+                const angle = i * goldenAngle;
+                // sqrt 让径向分布更均匀（避免中心过密）
+                const radius = maxR * Math.sqrt((i + 0.7) / count);
+                // 加一点随机抖动让布局更自然
+                const jitterX = randomBetween(-8, 8);
+                const jitterY = randomBetween(-8, 8);
+                return {
+                    x: cx + Math.cos(angle) * radius + jitterX,
+                    y: cy + Math.sin(angle) * radius + jitterY,
+                };
             });
         }
 
-        function createSmallStars() {
-            smallStarEls.forEach(s => s.remove());
-            smallStarEls = [];
-            starPositions = calcStarPositions();
+        /** 为每颗星星生成独特的漂浮动画参数 */
+        function randomFloatParams() {
+            const signX = Math.random() > 0.5 ? 1 : -1;
+            const signY = Math.random() > 0.5 ? 1 : -1;
+            return {
+                fx:  (4 + Math.random() * 8) * signX,
+                fy:  (3 + Math.random() * 6) * signY,
+                fx2: (3 + Math.random() * 7) * -signX,
+                fy2: (4 + Math.random() * 7) * -signY,
+                fx3: (2 + Math.random() * 8) * (Math.random() > 0.5 ? 1 : -1),
+                fy3: (2 + Math.random() * 6) * (Math.random() > 0.5 ? 1 : -1),
+                fld: 10 + Math.random() * 14,    // 漂浮周期 10-24s
+                twd: 2.5 + Math.random() * 3.5,   // 闪烁周期 2.5-6s
+            };
+        }
+
+        function createSongStars() {
+            // 清除旧星星
+            songStars.forEach(s => s.remove());
+            songStars = [];
+            const positions = calcStarPositions();
 
             SONG_DATA.forEach((song, i) => {
-                const {x, y} = starPositions[i];
+                const {x, y} = positions[i];
+                const fp = randomFloatParams();
+
                 const btn = document.createElement('button');
-                btn.className = 'small-star-el';
+                btn.className = 'song-star';
                 btn.setAttribute('aria-label', song.name);
-                btn.style.setProperty('--sx', x+'px');
-                btn.style.setProperty('--sy', y+'px');
+                btn.style.left = x + 'px';
+                btn.style.top = y + 'px';
                 btn.style.setProperty('--sc', song.color);
-                btn.style.setProperty('--sd', (i*0.025)+'s');
-                btn.innerHTML = `
-                    <svg class="small-star-svg" viewBox="0 0 38 38">
-                        <defs>
-                            <radialGradient id="ssg${i}" cx="50%" cy="40%" r="55%">
-                                <stop offset="0%" stop-color="#fff"/>
-                                <stop offset="45%" stop-color="${song.color}"/>
-                                <stop offset="100%" stop-color="${song.color}55"/>
-                            </radialGradient>
-                        </defs>
-                        <polygon points="19,1.5 23,13 35.5,13 25.5,20.5 29.5,34 19,26 8.5,34 12.5,20.5 2.5,13 15,13"
-                                 fill="url(#ssg${i})"/>
-                    </svg>
-                    <span class="star-tooltip">${song.name}</span>
-                `;
+                btn.style.setProperty('--sg', song.color + '88');
+                btn.style.setProperty('--fx', fp.fx + 'px');
+                btn.style.setProperty('--fy', fp.fy + 'px');
+                btn.style.setProperty('--fx2', fp.fx2 + 'px');
+                btn.style.setProperty('--fy2', fp.fy2 + 'px');
+                btn.style.setProperty('--fx3', fp.fx3 + 'px');
+                btn.style.setProperty('--fy3', fp.fy3 + 'px');
+                btn.style.setProperty('--fl-dur', fp.fld + 's');
+                btn.style.setProperty('--tw-dur', fp.twd + 's');
+                btn.style.setProperty('--fl-del', (Math.random() * -10).toFixed(1) + 's');
+                btn.style.setProperty('--tw-del', (Math.random() * -3).toFixed(1) + 's');
+
+                // 歌名标签
+                const label = document.createElement('span');
+                label.className = 'star-label';
+                label.textContent = song.name;
+                btn.appendChild(label);
+
+                // 点击事件
                 btn.addEventListener('click', (e) => {
                     e.stopPropagation();
                     playSong(i);
                 });
+
+                // 移动端触摸显示标签
                 btn.addEventListener('touchstart', () => {
-                    const tip = btn.querySelector('.star-tooltip');
-                    if (tip) {
-                        tip.style.opacity='1';
-                        tip.style.transform='translateX(-50%) translateY(0)';
-                        clearTimeout(btn._tt);
-                        btn._tt = setTimeout(() => {
-                            tip.style.opacity='';
-                            tip.style.transform='';
-                        }, 1600);
-                    }
+                    label.style.opacity = '1';
+                    label.style.transform = 'translateX(-50%) translateY(0)';
+                    clearTimeout(btn._tt);
+                    btn._tt = setTimeout(() => {
+                        label.style.opacity = '';
+                        label.style.transform = '';
+                    }, 1600);
                 }, {passive:true});
 
-                starSystem.appendChild(btn);
-                smallStarEls.push(btn);
+                starStage.appendChild(btn);
+                songStars.push(btn);
             });
         }
-
-        function expandStars() {
-            isExpanded = true;
-            centralHint.textContent = '✦ 再次点击收回 ✦';
-            smallStarEls.forEach(s => s.classList.add('expanded'));
-        }
-
-        function collapseStars() {
-            isExpanded = false;
-            centralHint.textContent = '✦ 点击展开星云 ✦';
-            smallStarEls.forEach(s => s.classList.remove('expanded'));
-        }
-
-        centralBtn.addEventListener('click', () => {
-            isExpanded ? collapseStars() : expandStars();
-        });
 
         // ============================================================
         // 歌曲列表 Sheet
@@ -1128,19 +1146,6 @@
         });
         tracklistOverlay.addEventListener('click', closeTracklist);
 
-        // 点空白收星云
-        document.addEventListener('click', (e) => {
-            if (isExpanded &&
-                !e.target.closest('.central-star-btn') &&
-                !e.target.closest('.small-star-el') &&
-                !e.target.closest('.player-sheet') &&
-                !e.target.closest('.tracklist-sheet') &&
-                !e.target.closest('.tracklist-overlay') &&
-                !e.target.closest('#tracklistToggle')) {
-                collapseStars();
-            }
-        });
-
         // 键盘快捷键
         document.addEventListener('keydown', (e) => {
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
@@ -1157,18 +1162,18 @@
             }
         });
 
-        // 响应式
+        // 响应式：窗口大小变化时重新计算星星位置
         let resizeTimer;
         window.addEventListener('resize', () => {
             clearTimeout(resizeTimer);
             resizeTimer = setTimeout(() => {
-                starPositions = calcStarPositions();
-                smallStarEls.forEach((el,i) => {
-                    const p = starPositions[i];
-                    el.style.setProperty('--sx', p.x+'px');
-                    el.style.setProperty('--sy', p.y+'px');
+                const positions = calcStarPositions();
+                songStars.forEach((el, i) => {
+                    const p = positions[i];
+                    el.style.left = p.x + 'px';
+                    el.style.top = p.y + 'px';
                 });
-            }, 250);
+            }, 300);
         });
 
         // ============================================================
@@ -1176,16 +1181,15 @@
         // ============================================================
         function init() {
             initCanvas();
-            createSmallStars();
+            createSongStars();
             buildTracklist();
             audioEl.volume = 0.72;
 
             console.log('%c🌟 陈粒 · 星云音乐站 %c已就绪',
                 'font-size:16px;color:#d8b0f0;', '');
-            console.log('%c   📁 音频文件路径: audio/ 文件夹 (16 首)', 'color:#a89cc8;');
-            console.log('%c   🖱 点击中央星星 → 展开 16 首歌曲星云', 'color:#a89cc8;');
-            console.log('%c   ⌨ 空格 → 播放/暂停 | ←→ 切歌 | ↑↓ 音量 | M 静音', 'color:#a89cc8;');
-            console.log('%c   ✨ 送给小周', 'color:#d8b0f0;');
+            console.log('%c   🎵 16首 · 本地MP3优先 | 在线API回退', 'color:#a89cc8;');
+            console.log('%c   ✨ 点击星星 → 播放 | ⌨ 空格 → 暂停 | ←→ 切歌 | ↑↓ 音量',
+                'color:#a89cc8;');
         }
 
         init();
